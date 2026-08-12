@@ -84,6 +84,16 @@ if(!cfg){
     return arr.sort((a,b)=>b.w-a.w||a.l-b.l||b.rd-a.rd||a.sosRank-b.sosRank||b.roundsWon-a.roundsWon||a.roundsLost-b.roundsLost||a.name.localeCompare(b.name));
   }
 
+  function seedMap(){
+    const names=state.seeds&&state.seeds.length===4?state.seeds:standings().map(x=>x.name);
+    return Object.fromEntries(names.map((n,i)=>[n,i+1]));
+  }
+  function displayTeam(name){
+    if(!name||name==='TBD')return'TBD';
+    const s=seedMap()[name];
+    return s?`#${s} ${name}`:name;
+  }
+
   function buildBracket(){
     const b=state.bracket||{};
     const s=state.seeds||standings().map(x=>x.name);
@@ -91,21 +101,18 @@ if(!cfg){
     b.wb1=b.wb1||blankMatch(s[0]||'TBD',s[3]||'TBD');
     b.wb2=b.wb2||blankMatch(s[1]||'TBD',s[2]||'TBD');
 
-    // Recalculate advancing teams from every completed match while preserving scores.
-    b.wbf={...(b.wbf||blankMatch()),a:winner(b.wb1)||'TBD',b:winner(b.wb2)||'TBD'};
-    b.lb1={...(b.lb1||blankMatch()),a:loser(b.wb1)||'TBD',b:loser(b.wb2)||'TBD'};
-    b.lb2={...(b.lb2||blankMatch()),a:loser(b.wbf)||'TBD',b:winner(b.lb1)||'TBD'};
+    const next=(old,a,b)=>{
+      const same=old&&old.a===a&&old.b===b;
+      return same?old:{...blankMatch(a,b),firstTeam:null,firstSide:null};
+    };
 
-    // First-place Match 1 is the championship match.
-    b.fp1={...(b.fp1||blankMatch()),a:winner(b.wbf)||'TBD',b:winner(b.lb2)||'TBD'};
+    b.wbf=next(b.wbf,winner(b.wb1)||'TBD',winner(b.wb2)||'TBD');
+    b.lb1=next(b.lb1,loser(b.wb1)||'TBD',loser(b.wb2)||'TBD');
+    b.lb2=next(b.lb2,loser(b.wbf)||'TBD',winner(b.lb1)||'TBD');
+    b.fp1=next(b.fp1,winner(b.wbf)||'TBD',winner(b.lb2)||'TBD');
 
-    // First-place Match 2 is a reset only if the Losers Bracket team wins Match 1.
     const resetNeeded=isFinal(b.fp1)&&winner(b.fp1)===b.fp1.b;
-    if(resetNeeded){
-      b.fp2={...(b.fp2||blankMatch()),a:b.fp1.a,b:b.fp1.b};
-    }else{
-      b.fp2={...(b.fp2||blankMatch()),a:'TBD',b:'TBD',scoreA:null,scoreB:null,firstTeam:null,firstSide:null};
-    }
+    b.fp2=resetNeeded?next(b.fp2,b.fp1.a,b.fp1.b):blankMatch();
 
     state.bracket=b;
     return b;
@@ -117,7 +124,7 @@ if(!cfg){
     const status=isFinal(m)?'FINAL':'PENDING';
     const choices=path.startsWith('bracket.')&&hasTeams?`<select class="choice" data-choice="${path}"><option value="">Choose who attacks first...</option><option value="a-attack">${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend">${m.a} — Defend / ${m.b} — Attack</option></select>`:'';
     const resetNote=label==='First Place Match 2'&&!hasTeams?'<p class="small">Only played if the Losers Bracket team wins First Place Match 1.</p>':'';
-    return`<div class="match"><b>${label}</b><div class="status">${status}</div><div class="row"><span>${m.a||'TBD'}</span><input data-score="${path}.scoreA" value="${m.scoreA??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div><div class="row"><span>${m.b||'TBD'}</span><input data-score="${path}.scoreB" value="${m.scoreB??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div>${choices}${resetNote}</div>`;
+    return`<div class="match"><b>${label}</b><div class="status">${status}</div><div class="row"><span>${displayTeam(m.a||'TBD')}</span><input data-score="${path}.scoreA" value="${m.scoreA??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div><div class="row"><span>${displayTeam(m.b||'TBD')}</span><input data-score="${path}.scoreB" value="${m.scoreB??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div>${choices}${resetNote}</div>`;
   }
 
   function render(){
@@ -126,7 +133,7 @@ if(!cfg){
     document.querySelector('#draw').onclick=async()=>{state=draw();await save();render()};
     document.querySelector('#seed').onclick=async()=>{
       if((state.pool||[]).length!==4||state.pool.some(x=>!finalScore(+x.scoreA,+x.scoreB))){alert('Finish all four pool matches with a final score: 4-0, 4-1, 4-2, 5-3, or 5-4. Tied scores remain PENDING.');return}
-      state.poolComplete=true;state.seeds=standings().map(x=>x.name);state.bracket=null;await save();render();
+      state.poolComplete=true;state.seeds=standings().map(x=>x.name);state.bracket=null;buildBracket();await save();render();
     };
     document.querySelector('#logout').onclick=()=>signOut(auth);
 
@@ -163,12 +170,11 @@ if(!cfg){
         return;
       }
       o[key]=v;
-      // Any 0-5 combination is valid while being entered. Only the five legal
-      // R6 final scores become FINAL; ties and all other scores stay PENDING.
       if(o.scoreA!=null&&o.scoreB!=null&&!scoreValid(+o.scoreA,+o.scoreB)){
         alert('Scores must be whole numbers from 0 to 5. Tied scores are allowed and remain PENDING.');
         o[key]=null;
       }
+      if(p[0]==='bracket')buildBracket();
       await save();
       render();
     });
