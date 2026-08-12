@@ -91,16 +91,15 @@ if(!cfg){
     b.wb1=b.wb1||blankMatch(s[0]||'TBD',s[3]||'TBD');
     b.wb2=b.wb2||blankMatch(s[1]||'TBD',s[2]||'TBD');
 
-    // Keep the scores already entered, but always recalculate the teams from the prior round.
+    // Recalculate advancing teams from every completed match while preserving scores.
     b.wbf={...(b.wbf||blankMatch()),a:winner(b.wb1)||'TBD',b:winner(b.wb2)||'TBD'};
     b.lb1={...(b.lb1||blankMatch()),a:loser(b.wb1)||'TBD',b:loser(b.wb2)||'TBD'};
     b.lb2={...(b.lb2||blankMatch()),a:loser(b.wbf)||'TBD',b:winner(b.lb1)||'TBD'};
-    b.lbf={...(b.lbf||blankMatch()),a:winner(b.lb2)||'TBD',b:loser(b.wbf)||'TBD'};
 
     // First-place Match 1 is the championship match.
-    b.fp1={...(b.fp1||blankMatch()),a:winner(b.wbf)||'TBD',b:winner(b.lbf)||'TBD'};
+    b.fp1={...(b.fp1||blankMatch()),a:winner(b.wbf)||'TBD',b:winner(b.lb2)||'TBD'};
 
-    // First-place Match 2 is only needed when the losers-bracket team wins Match 1.
+    // First-place Match 2 is a reset only if the Losers Bracket team wins Match 1.
     const resetNeeded=isFinal(b.fp1)&&winner(b.fp1)===b.fp1.b;
     if(resetNeeded){
       b.fp2={...(b.fp2||blankMatch()),a:b.fp1.a,b:b.fp1.b};
@@ -116,7 +115,7 @@ if(!cfg){
     if(!m)m=blankMatch();
     const hasTeams=m.a&&m.b&&m.a!=='TBD'&&m.b!=='TBD';
     const status=isFinal(m)?'FINAL':'PENDING';
-    const choices=path.startsWith('bracket.')&&hasTeams?`<select class="choice" data-choice="${path}"><option value="">Choose who attacks first...</option><option value="a-attack">${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend">${m.a} — Defend / ${m.b} — Attack</option><option value="b-attack">${m.b} — Attack / ${m.a} — Defend</option><option value="b-defend">${m.b} — Defend / ${m.a} — Attack</option></select>`:m.a&&m.b&&hasTeams?`<div class="auto-choice"><b>Pool play: Attack/Defend selected automatically</b><br><span class="small">${m.firstTeam} — ${m.firstSide} first</span></div>`:'';
+    const choices=path.startsWith('bracket.')&&hasTeams?`<select class="choice" data-choice="${path}"><option value="">Choose who attacks first...</option><option value="a-attack">${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend">${m.a} — Defend / ${m.b} — Attack</option><option value="b-attack">${m.b} — Attack / ${m.a} — Defend</option><option value="b-defend">${m.b} — Defend / ${m.a} — Attack</option></select>`:'';
     const resetNote=label==='First Place Match 2'&&!hasTeams?'<p class="small">Only played if the Losers Bracket team wins First Place Match 1.</p>':'';
     return`<div class="match"><b>${label}</b><div class="status">${status}</div><div class="row"><span>${m.a||'TBD'}</span><input data-score="${path}.scoreA" value="${m.scoreA??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div><div class="row"><span>${m.b||'TBD'}</span><input data-score="${path}.scoreB" value="${m.scoreB??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div>${choices}${resetNote}</div>`;
   }
@@ -144,7 +143,6 @@ if(!cfg){
         card(b.wbf,'Winners Final','bracket.wbf')+
         card(b.lb1,'Losers Semi-Final','bracket.lb1')+
         card(b.lb2,'Losers Final','bracket.lb2')+
-        card(b.lbf,'Losers Bracket Final','bracket.lbf')+
         card(b.fp1,'First Place Match 1','bracket.fp1')+
         card(b.fp2,'First Place Match 2','bracket.fp2');
     }
@@ -165,8 +163,8 @@ if(!cfg){
         return;
       }
       o[key]=v;
-      // Any 0-5 combination is allowed while being entered. Only the five
-      // legal R6 final scores become FINAL; ties and other scores stay PENDING.
+      // Any 0-5 combination is valid while being entered. Only the five legal
+      // R6 final scores become FINAL; ties and all other scores stay PENDING.
       if(o.scoreA!=null&&o.scoreB!=null&&!scoreValid(+o.scoreA,+o.scoreB)){
         alert('Scores must be whole numbers from 0 to 5. Tied scores are allowed and remain PENDING.');
         o[key]=null;
