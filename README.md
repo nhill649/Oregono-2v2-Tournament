@@ -1,16 +1,26 @@
-# Siege Tournament Website
+# Oregono 2v2 Tournament
 
-This is a browser website, not a mobile app.
+Live Rainbow Six Siege tournament website for Memphis & Sam, Preston & Roman, Eli & Sanath, and Nolan & Xavier.
 
-Visitors open the public website URL and can view the live tournament. The administrator signs in through the website to enter scores and choose Attack/Defend-first. Firebase security rules prevent visitors from editing.
+## Format
+- 4 pool-play matches; each team plays exactly 2 matches and no matchup repeats.
+- Pool results seed a 4-team double-elimination bracket.
+- Higher seed chooses Attack or Defend first in bracket matches.
+- Oregon 2nd Floor; first to 4 round wins; 3 overtime rounds.
+- Rules: no roaming, no shields, no tracking operators, no team-killing.
+- Tiebreakers: round differential -> score against common opponent -> strength of pool-play schedule.
 
-## Publish it
-1. Create a Firebase project and Web App.
-2. Enable Email/Password Authentication.
-3. Create your admin account.
-4. Copy `firebase-config.example.js` to `firebase-config.js` and add the Firebase Web App settings.
-5. Put your admin Firebase UID into `firestore.rules`.
-6. Deploy these files to any static website host (GitHub Pages, Netlify, Vercel, Cloudflare Pages, etc.).
-7. Share the resulting `https://...` website URL.
+## Make it live
+The repository includes a GitHub Pages deployment workflow. The site uses Firebase Firestore for shared live state and Firebase Authentication for the tournament admin.
 
-The site is responsive and works on desktop and phones.
+1. Create a Firebase project.
+2. Add a Firebase Web App.
+3. Enable Authentication -> Email/Password.
+4. Create the tournament admin user.
+5. Enable Firestore Database.
+6. Copy `firebase-config.example.js` to `firebase-config.js` locally and paste the Web App config values into it.
+7. Replace the placeholder admin UID in `firestore.rules` with the admin user's UID, then deploy those rules from Firebase.
+8. In GitHub, open **Settings -> Pages** and choose **GitHub Actions** as the source. The included workflow will publish the site after the next push.
+9. Share the GitHub Pages URL. Everyone sees the same Firestore-backed live state; only the admin can change scores or Attack/Defend-first choices.
+
+The GitHub Pages workflow is `.github/workflows/pages.yml`.
