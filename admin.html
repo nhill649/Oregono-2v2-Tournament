@@ -123,7 +123,8 @@ if(!cfg){
     const hasTeams=m.a&&m.b&&m.a!=='TBD'&&m.b!=='TBD';
     const status=isFinal(m)?'FINAL':'PENDING';
     const w=winner(m);
-    const choices=path.startsWith('bracket.')&&hasTeams?`<select class="choice" data-choice="${path}"><option value="">Choose who attacks first...</option><option value="a-attack">${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend">${m.a} — Defend / ${m.b} — Attack</option></select>`:'';
+    const choiceValue=m.firstTeam===m.a?(m.firstSide==='Attack'?'a-attack':m.firstSide==='Defend'?'a-defend':''):'';
+    const choices=path.startsWith('bracket.')&&hasTeams?`<select class="choice" data-choice="${path}"><option value="" ${choiceValue===''?'selected':''}>Choose who attacks first...</option><option value="a-attack" ${choiceValue==='a-attack'?'selected':''}>${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend" ${choiceValue==='a-defend'?'selected':''}>${m.a} — Defend / ${m.b} — Attack</option></select>`:'';
     const resetNote=label==='First Place Match 2'&&!hasTeams?'<p class="small">Only played if the Losers Bracket team wins First Place Match 1.</p>':'';
     const nameA=path.startsWith('pool.')?(m.a||'TBD'):displayTeam(m.a||'TBD');
     const nameB=path.startsWith('pool.')?(m.b||'TBD'):displayTeam(m.b||'TBD');
