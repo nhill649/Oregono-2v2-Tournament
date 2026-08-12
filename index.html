@@ -41,31 +41,21 @@ function standings(){
 function card(m,label){if(!m)return`<div class="match"><b>${label}</b><p class="small">Waiting for teams to advance.</p></div>`;let done=finalScore(+m.scoreA,+m.scoreB),w=win(m);return`<div class="match"><b>${label}</b><span class="small"> ${done?'FINAL':'PENDING'}</span><div class="row ${w===m.a?'win':''}"><div>${m.a||'TBD'}</div><input disabled value="${m.scoreA??''}"></div><div class="row ${w===m.b?'win':''}"><div>${m.b||'TBD'}</div><input disabled value="${m.scoreB??''}"></div><div class="small">${m.firstTeam?'First: '+m.firstTeam+' — '+m.firstSide:''}</div></div>`}
 function seedOf(name,seeds){let i=seeds.indexOf(name);return i>=0?i+1:'—'}
 function bracketTeam(match,side,fallback){return match&&match[side]?match[side]:fallback}
-function bracketMatch(m,label,seeds,position,fallbackA='TBD',fallbackB='TBD',ifNecessary=false){
- let a=bracketTeam(m,'a',fallbackA),b=bracketTeam(m,'b',fallbackB),done=finalScore(+(m?.scoreA),+(m?.scoreB)),w=win(m);return`<div class="bracket-match ${position}"><div class="match-head">${label}</div><span class="status">${done?'FINAL':'PENDING'}</span>${ifNecessary?'<span class="if-needed">If Necessary</span>':''}<div class="team ${w===a?'winner':''}"><span class="seed">${seedOf(a,seeds)}</span><span class="name">${a}</span><span class="score">${m?.scoreA??'—'}</span></div><div class="team ${w===b?'winner':''}"><span class="seed">${seedOf(b,seeds)}</span><span class="name">${b}</span><span class="score">${m?.scoreB??'—'}</span></div></div>`
-}
+function bracketMatch(m,label,seeds,position,fallbackA='TBD',fallbackB='TBD',ifNecessary=false){let a=bracketTeam(m,'a',fallbackA),b=bracketTeam(m,'b',fallbackB),done=finalScore(+(m?.scoreA),+(m?.scoreB)),w=win(m);return`<div class="bracket-match ${position}"><div class="match-head">${label}</div><span class="status">${done?'FINAL':'PENDING'}</span>${ifNecessary?'<span class="if-needed">If Necessary</span>':''}<div class="team ${w===a?'winner':''}"><span class="seed">${seedOf(a,seeds)}</span><span class="name">${a}</span><span class="score">${m?.scoreA??'—'}</span></div><div class="team ${w===b?'winner':''}"><span class="seed">${seedOf(b,seeds)}</span><span class="name">${b}</span><span class="score">${m?.scoreB??'—'}</span></div></div>`}
 function renderBracket(){
  if(!state.poolComplete){document.querySelector('#bracket').innerHTML='<div class="notice">The double-elimination bracket will appear after pool play is locked.</div>';return}
  let b=state.bracket||{},s=state.seeds||standings().map(x=>x.name);
- const wb1=b.wb1||{a:s[0],b:s[3],scoreA:null,scoreB:null};
- const wb2=b.wb2||{a:s[1],b:s[2],scoreA:null,scoreB:null};
- const wbf=b.wbf||{};
- const lb1=b.lb1||{};
- const lb2=b.lb2||{};
- const gf=b.gf||{};
- const winner1=win(wb1),winner2=win(wb2),loser1=lose(wb1),loser2=lose(wb2);
- const winner3=win(wbf),loser4=lose(wbf),winner4=win(lb2),winner5=win(lb2),winner6=win(gf),loser6=lose(gf);
+ const wb1=b.wb1||{a:s[0],b:s[3],scoreA:null,scoreB:null},wb2=b.wb2||{a:s[1],b:s[2],scoreA:null,scoreB:null},wbf=b.wbf||{},lb1=b.lb1||{},lb2=b.lb2||{},gf=b.gf||{};
+ const winner1=win(wb1),winner2=win(wb2),loser1=lose(wb1),loser2=lose(wb2),winner3=win(wbf),loser4=lose(wbf),winner4=win(wbf),winner5=win(lb2),winner6=win(gf),loser6=lose(gf);
  const m4={...wbf,a:wbf.a||winner1||'winner 1',b:wbf.b||winner2||'Winner 2'};
  const m3={...lb1,a:lb1.a||loser1||'loser 1',b:lb1.b||loser2||'loser 2'};
  const m5={...lb2,a:lb2.a||loser4||'Loser 4',b:lb2.b||winner3||'winner 3'};
- const m6={...(b.gf||{}),a:(b.gf?.a)||winner3||'winner 4',b:(b.gf?.b)||winner5||'Winner 5'};
- const m7={...gf,a:gf.a||winner6||'winner 6',b:gf.b||loser6||'loser 6'};
+ const m6={...gf,a:gf.a||winner4||'winner 4',b:gf.b||winner5||'Winner 5'};
+ const reset=b.reset||{};
+ const m7={...reset,a:reset.a||winner6||'winner 6',b:reset.b||loser6||'loser 6'};
  document.querySelector('#bracket').innerHTML=`<div class="bracket-view"><h3 class="bracket-title">4 Team Double Elimination</h3><div class="bracket-board"><div class="bracket-stage"><div class="bracket-label">Winner's Bracket</div>${bracketMatch(wb1,'1',s,'m1')}${bracketMatch(wb2,'2',s,'m2')}${bracketMatch(m3,'3',s,'m3')}${bracketMatch(m4,'4',s,'m4','winner 1','Winner 2')}${bracketMatch(m5,'5',s,'m5','Loser 4','winner 3')}${bracketMatch(m6,'6',s,'m6','winner 4','Winner 5')}${bracketMatch(m7,'7',s,'m7','winner 6','loser 6',true)}<span class="bracket-line v c12v"></span><span class="bracket-line h c12a"></span><span class="bracket-line h c12b"></span><span class="bracket-line v c35v"></span><span class="bracket-line h c35a"></span><span class="bracket-line h c35b"></span><span class="bracket-line v c45v"></span><span class="bracket-line h c45a"></span><span class="bracket-line h c45b"></span><span class="bracket-line h c45c"></span><span class="bracket-line v c67v"></span><span class="bracket-line h c67a"></span><span class="bracket-line h c67b"></span></div></div></div>`
 }
-function render(){
- if(!state.pool?.length){setup.textContent='Waiting for the tournament controller to generate the random pool schedule.';document.querySelector('#pool').innerHTML='<div class="notice">Pool matches will appear here when the controller starts the tournament.</div>'}else{setup.textContent='Live tournament connected ✓';document.querySelector('#pool').innerHTML=state.pool.map((m,i)=>card(m,'Pool Match '+(i+1))).join('')}
- let ss=standings();document.querySelector('#standings').innerHTML=ss.map((x,i)=>`<tr><td>${i+1}</td><td><b>${x.name}</b></td><td>${x.w}-${x.l}</td><td>${x.rd>=0?'+':''}${x.rd}</td><td>${x.sosRank}</td><td>${x.roundsWon}</td><td>${x.roundsLost}</td></tr>`).join('');renderBracket()
-}
+function render(){if(!state.pool?.length){setup.textContent='Waiting for the tournament controller to generate the random pool schedule.';document.querySelector('#pool').innerHTML='<div class="notice">Pool matches will appear here when the controller starts the tournament.</div>'}else{setup.textContent='Live tournament connected ✓';document.querySelector('#pool').innerHTML=state.pool.map((m,i)=>card(m,'Pool Match '+(i+1))).join('')}let ss=standings();document.querySelector('#standings').innerHTML=ss.map((x,i)=>`<tr><td>${i+1}</td><td><b>${x.name}</b></td><td>${x.w}-${x.l}</td><td>${x.rd>=0?'+':''}${x.rd}</td><td>${x.sosRank}</td><td>${x.roundsWon}</td><td>${x.roundsLost}</td></tr>`).join('');renderBracket()}
 onSnapshot(ref,s=>{if(s.exists())state=s.data();render()},e=>{setup.textContent='Live connection error. Check Firebase settings/rules.';console.error(e)});render();
 </script>
 </body>
