@@ -125,7 +125,9 @@ if(!cfg){
     const w=winner(m);
     const choices=path.startsWith('bracket.')&&hasTeams?`<select class="choice" data-choice="${path}"><option value="">Choose who attacks first...</option><option value="a-attack">${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend">${m.a} — Defend / ${m.b} — Attack</option></select>`:'';
     const resetNote=label==='First Place Match 2'&&!hasTeams?'<p class="small">Only played if the Losers Bracket team wins First Place Match 1.</p>':'';
-    return`<div class="match"><b>${label}</b><div class="status">${status}</div><div class="row ${w&&m.a===w?'winner-row':''}"><span>${displayTeam(m.a||'TBD')}</span><input data-score="${path}.scoreA" value="${m.scoreA??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div><div class="row ${w&&m.b===w?'winner-row':''}"><span>${displayTeam(m.b||'TBD')}</span><input data-score="${path}.scoreB" value="${m.scoreB??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div>${choices}${resetNote}</div>`;
+    const nameA=path.startsWith('pool.')?(m.a||'TBD'):displayTeam(m.a||'TBD');
+    const nameB=path.startsWith('pool.')?(m.b||'TBD'):displayTeam(m.b||'TBD');
+    return`<div class="match"><b>${label}</b><div class="status">${status}</div><div class="row ${w&&m.a===w?'winner-row':''}"><span>${nameA}</span><input data-score="${path}.scoreA" value="${m.scoreA??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div><div class="row ${w&&m.b===w?'winner-row':''}"><span>${nameB}</span><input data-score="${path}.scoreB" value="${m.scoreB??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div>${choices}${resetNote}</div>`;
   }
 
   function render(){
@@ -139,7 +141,7 @@ if(!cfg){
     document.querySelector('#logout').onclick=()=>signOut(auth);
 
     document.querySelector('#pool').innerHTML=(state.pool||[]).map((m,i)=>card(m,'Pool Match '+(i+1),'pool.'+i)).join('')||'<p>Click Randomize Pool Matches.</p>';
-    document.querySelector('#standings').innerHTML='<table><thead><tr><th>Seed</th><th>Team</th><th>Record</th><th>Round Diff</th><th>Strength of Schedule</th><th>Rounds Won</th><th>Rounds Lost</th></tr></thead><tbody>'+(standings().map((x,i)=>`<tr><td>${i+1}</td><td><b>${x.name}</b></td><td>${x.w}-${x.l}</td><td>${x.rd>=0?'+':''}${x.rd}</td><td>${x.sosRank}</td><td>${x.roundsWon}</td><td>${x.roundsLost}</td></tr>`).join(''))+'</tbody></table>';
+    document.querySelector('#standings').innerHTML='<table><thead><tr><th>Seed</th><th>Team</th><th>Record</th><th>Round Diff</th><th>Strength of Schedule</th><th>Rounds Won</th><th>Rounds Lost</th></tr></thead><tbody>'+(standings().map((x,i)=>`<tr><td>${i+1}</td><td>${x.name}</td><td>${x.w}-${x.l}</td><td>${x.rd>=0?'+':''}${x.rd}</td><td>${x.sosRank}</td><td>${x.roundsWon}</td><td>${x.roundsLost}</td></tr>`).join(''))+'</tbody></table>';
 
     if(!state.poolComplete){
       document.querySelector('#bracket').innerHTML='<p>Finish pool play and click Lock Pool & Create Bracket.</p>';
