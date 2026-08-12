@@ -1,4 +1,4 @@
-# Oregono 2v2 Tournament
+# Oregano 2v2 Tournament
 
 Live Rainbow Six Siege tournament website for Memphis & Sam, Preston & Roman, Eli & Sanath, and Nolan & Xavier.
 
