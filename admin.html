@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Oregano 2v2 Tournament Scorer</title>
 <style>
-body{font:16px system-ui;margin:0;background:#090d12;color:#fff}.wrap{max-width:1100px;margin:auto;padding:28px}section,.login{background:#111820;border:1px solid #2a3743;border-radius:14px;padding:18px;margin:16px 0}button,input,select{padding:10px;border-radius:8px;border:1px solid #3a4855}button{background:#55d6c2;font-weight:800;cursor:pointer}input,select{background:#080d12;color:white}.login{max-width:430px;margin:60px auto}.login input{width:calc(100% - 22px);margin:6px 0}.error{color:#ff8d8d;margin-top:8px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.match{background:#0d141b;border:1px solid #2a3743;border-radius:10px;padding:14px}.row{display:grid;grid-template-columns:1fr 70px;gap:8px;margin:6px 0;padding:6px;border-radius:8px}.row.winner-row{font-weight:900}#pool .row.winner-row span{color:#55d6c2;font-weight:900}.small{color:#9aa8b5;font-size:12px}.status{color:#9aa8b5;font-size:12px;margin-top:4px}.actions{display:flex;gap:8px;flex-wrap:wrap}.choice{width:100%;margin-top:8px}.auto-choice{margin-top:8px;padding:10px;border:1px solid #2a3743;border-radius:8px;background:#111820}.auto-choice strong{color:#55d6c2}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #2a3743}th:nth-child(n+4),td:nth-child(n+4){text-align:center}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+body{font:16px system-ui;margin:0;background:#090d12;color:#fff}.wrap{max-width:1100px;margin:auto;padding:28px}section,.login{background:#111820;border:1px solid #2a3743;border-radius:14px;padding:18px;margin:16px 0}button,input{padding:10px;border-radius:8px;border:1px solid #3a4855}button{background:#55d6c2;font-weight:800;cursor:pointer}input{background:#080d12;color:white}.login{max-width:430px;margin:60px auto}.login input{width:calc(100% - 22px);margin:6px 0}.error{color:#ff8d8d;margin-top:8px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.match{background:#0d141b;border:1px solid #2a3743;border-radius:10px;padding:14px}.row{display:grid;grid-template-columns:1fr 70px;gap:8px;margin:6px 0;padding:6px;border-radius:8px;align-items:center}.row.winner-row{font-weight:900}#pool .row.winner-row span.team-name{color:#55d6c2;font-weight:900}.small{color:#9aa8b5;font-size:12px}.status{color:#9aa8b5;font-size:12px;margin-top:4px}.actions{display:flex;gap:8px;flex-wrap:wrap}.auto-choice{margin-top:8px;padding:8px 10px;border:1px solid #2a3743;border-radius:8px;background:#111820}.role-badge{display:inline-block;font-size:11px;line-height:1;padding:4px 6px;border-radius:5px;margin-left:7px;font-weight:900;vertical-align:middle}.role-atk{background:#ff9f43;color:#111}.role-def{background:#4da3ff;color:#07111b}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #2a3743}th:nth-child(n+4),td:nth-child(n+4){text-align:center}@media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -38,15 +38,18 @@ if(!cfg){
   const loser=m=>isFinal(m)?(+m.scoreA>+m.scoreB?m.b:m.a):null;
   const blankMatch=(a='TBD',b='TBD')=>({a,b,scoreA:null,scoreB:null,firstTeam:null,firstSide:null});
 
-  const autoPickPoolChoice=m=>{
+  // Every match gets its attack/defend assignment automatically. Once chosen,
+  // it is stored in Firestore so admin and viewer stay in sync.
+  const autoPickChoice=m=>{
     if(!m||!m.a||!m.b||m.a==='TBD'||m.b==='TBD'||m.firstTeam)return false;
     m.firstTeam=Math.random()<0.5?m.a:m.b;
     m.firstSide='Attack';
     return true;
   };
+
   const ensurePoolChoices=()=>{
     let changed=false;
-    for(const m of state.pool||[])if(autoPickPoolChoice(m))changed=true;
+    for(const m of state.pool||[])if(autoPickChoice(m))changed=true;
     return changed;
   };
 
@@ -62,7 +65,7 @@ if(!cfg){
   function draw(){
     const t=shuffle(teams),omit=[[t[0],t[1]],[t[2],t[3]]],p=[];
     for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)if(!omit.some(x=>(x[0]===t[i]&&x[1]===t[j])||(x[0]===t[j]&&x[1]===t[i])))p.push([t[i],t[j]]);
-    return{pool:p.map((x,i)=>{const m={id:'P'+(i+1),a:x[0],b:x[1],scoreA:null,scoreB:null,firstTeam:null,firstSide:null};autoPickPoolChoice(m);return m}),poolComplete:false,bracket:null,seeds:null};
+    return{pool:p.map((x,i)=>{const m={id:'P'+(i+1),a:x[0],b:x[1],scoreA:null,scoreB:null,firstTeam:null,firstSide:null};autoPickChoice(m);return m}),poolComplete:false,bracket:null,seeds:null};
   }
 
   async function save(){await setDoc(ref,state)}
@@ -76,93 +79,46 @@ if(!cfg){
       a.rd+=x-y;b.rd+=y-x;a.roundsWon+=x;b.roundsWon+=y;a.roundsLost+=y;b.roundsLost+=x;a.opp[g.b]=true;b.opp[g.a]=true;
       if(x>y){a.w++;b.l++}else{b.w++;a.l++}
     }
-
     const arr=Object.values(M);
     const sosScore=t=>{
-      const opponents=Object.keys(t.opp);
-      if(!opponents.length)return 0;
+      const opponents=Object.keys(t.opp);if(!opponents.length)return 0;
       let total=0,count=0;
-      for(const opponent of opponents){
-        const o=M[opponent];
-        if(!o)continue;
-        const games=o.w+o.l;
-        total+=games?o.w/games:0;
-        count++;
-      }
+      for(const opponent of opponents){const o=M[opponent];if(!o)continue;const games=o.w+o.l;total+=games?o.w/games:0;count++}
       return count?total/count:0;
     };
-
     const sosOrder=[...arr].sort((a,b)=>sosScore(b)-sosScore(a));
     let previous=null,rank=0;
-    sosOrder.forEach((team,index)=>{
-      const score=sosScore(team);
-      if(previous===null||score!==previous)rank=index+1;
-      team.sosRank=rank;
-      team.sosValue=score;
-      previous=score;
-    });
-
-    return arr.sort((a,b)=>
-      b.w-a.w||
-      a.l-b.l||
-      b.rd-a.rd||
-      a.sosRank-b.sosRank||
-      b.roundsWon-a.roundsWon||
-      a.roundsLost-b.roundsLost||
-      a.name.localeCompare(b.name)
-    );
+    sosOrder.forEach((team,index)=>{const score=sosScore(team);if(previous===null||score!==previous)rank=index+1;team.sosRank=rank;team.sosValue=score;previous=score});
+    return arr.sort((a,b)=>b.w-a.w||a.l-b.l||b.rd-a.rd||a.sosRank-b.sosRank||b.roundsWon-a.roundsWon||a.roundsLost-b.roundsLost||a.name.localeCompare(b.name));
   }
 
   function seedMap(){
     const names=Array.isArray(state.seeds)&&state.seeds.length===4?state.seeds:standings().map(x=>x.name);
     return Object.fromEntries(names.map((n,i)=>[n,i+1]));
   }
-  function displayTeam(name){
-    if(!name||name==='TBD')return'TBD';
-    const s=seedMap()[name];
-    return s?`#${s} ${name}`:name;
-  }
+  function displayTeam(name){if(!name||name==='TBD')return'TBD';const s=seedMap()[name];return s?`#${s} ${name}`:name}
 
   function buildBracket(){
     const b=state.bracket||{};
     const s=Array.isArray(state.seeds)&&state.seeds.length===4?state.seeds:standings().map(x=>x.name);
-
     b.wb1=b.wb1||blankMatch(s[0]||'TBD',s[3]||'TBD');
     b.wb2=b.wb2||blankMatch(s[1]||'TBD',s[2]||'TBD');
-
-    const next=(old,a,b)=>{
-      const same=old&&old.a===a&&old.b===b;
-      return same?old:{...blankMatch(a,b),firstTeam:null,firstSide:null};
-    };
-
+    const next=(old,a,b)=>{const same=old&&old.a===a&&old.b===b;return same?old:{...blankMatch(a,b)};};
     b.wbf=next(b.wbf,winner(b.wb1)||'TBD',winner(b.wb2)||'TBD');
     b.lb1=next(b.lb1,loser(b.wb1)||'TBD',loser(b.wb2)||'TBD');
     b.lb2=next(b.lb2,loser(b.wbf)||'TBD',winner(b.lb1)||'TBD');
     b.fp1=next(b.fp1,winner(b.wbf)||'TBD',winner(b.lb2)||'TBD');
-
     const resetNeeded=isFinal(b.fp1)&&winner(b.fp1)===b.fp1.b;
     b.fp2=resetNeeded?next(b.fp2,b.fp1.a,b.fp1.b):blankMatch();
-
+    for(const key of ['wb1','wb2','wbf','lb1','lb2','fp1','fp2'])autoPickChoice(b[key]);
     state.bracket=b;
     return b;
   }
 
-  function choiceValue(m){
-    if(!m||!m.firstTeam)return'';
-    if(m.firstTeam===m.a)return m.firstSide==='Attack'?'a-attack':'a-defend';
-    if(m.firstTeam===m.b)return m.firstSide==='Attack'?'a-defend':'a-attack';
-    return'';
-  }
-
-  function attackChoices(m,path,hasTeams){
-    if(!hasTeams)return'';
-    if(path.startsWith('pool.')){
-      const attack=m.firstTeam||m.a;
-      const defend=attack===m.a?m.b:m.a;
-      return`<div class="auto-choice"><strong>Attack:</strong> ${attack} &nbsp;•&nbsp; <strong>Defend:</strong> ${defend}</div>`;
-    }
-    const value=choiceValue(m);
-    return`<select class="choice" data-choice="${path}"><option value="" ${value===''?'selected':''}>Choose who attacks first...</option><option value="a-attack" ${value==='a-attack'?'selected':''}>${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend" ${value==='a-defend'?'selected':''}>${m.a} — Defend / ${m.b} — Attack</option></select>`;
+  function roleBadge(m,team){
+    if(!m?.firstTeam||!team||team==='TBD')return'';
+    const attacking=m.firstTeam===team&&m.firstSide==='Attack';
+    return`<span class="role-badge ${attacking?'role-atk':'role-def'}">${attacking?'ATK':'DEF'}</span>`;
   }
 
   function card(m,label,path){
@@ -170,11 +126,13 @@ if(!cfg){
     const hasTeams=m.a&&m.b&&m.a!=='TBD'&&m.b!=='TBD';
     const status=isFinal(m)?'FINAL':'PENDING';
     const w=winner(m);
-    const choices=attackChoices(m,path,hasTeams);
+    const isPool=path.startsWith('pool.');
+    const nameA=isPool?(m.a||'TBD'):displayTeam(m.a||'TBD');
+    const nameB=isPool?(m.b||'TBD'):displayTeam(m.b||'TBD');
+    const badgeA=isPool?roleBadge(m,m.a):'';
+    const badgeB=isPool?roleBadge(m,m.b):'';
     const resetNote=label==='First Place Match 2'&&!hasTeams?'<p class="small">Only played if the Losers Bracket team wins First Place Match 1.</p>':'';
-    const nameA=path.startsWith('pool.')?(m.a||'TBD'):displayTeam(m.a||'TBD');
-    const nameB=path.startsWith('pool.')?(m.b||'TBD'):displayTeam(m.b||'TBD');
-    return`<div class="match"><b>${label}</b><div class="status">${status}</div><div class="row ${w&&m.a===w?'winner-row':''}"><span>${nameA}</span><input data-score="${path}.scoreA" value="${m.scoreA??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div><div class="row ${w&&m.b===w?'winner-row':''}"><span>${nameB}</span><input data-score="${path}.scoreB" value="${m.scoreB??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div>${choices}${resetNote}</div>`;
+    return`<div class="match"><b>${label}</b><div class="status">${status}</div><div class="row ${w&&m.a===w?'winner-row':''}"><span class="team-name">${nameA}${badgeA}</span><input data-score="${path}.scoreA" value="${m.scoreA??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div><div class="row ${w&&m.b===w?'winner-row':''}"><span class="team-name">${nameB}${badgeB}</span><input data-score="${path}.scoreB" value="${m.scoreB??''}" type="number" min="0" max="5" step="1" ${hasTeams?'':'disabled'}></div>${resetNote}</div>`;
   }
 
   function render(){
@@ -208,38 +166,13 @@ if(!cfg){
 
   function bind(){
     document.querySelectorAll('[data-score]').forEach(e=>e.onchange=async()=>{
-      const raw=e.value.trim();
-      const v=raw===''?null:Number(raw);
-      const p=e.dataset.score.split('.');
-      let o=state;
-      for(let i=0;i<p.length-1;i++)o=o[p[i]];
-      const key=p[p.length-1];
-      if(v!==null&&(!Number.isInteger(v)||v<0||v>5)){
-        alert('Enter a whole number from 0 to 5.');
-        e.value=o[key]??'';
-        return;
-      }
+      const raw=e.value.trim(),v=raw===''?null:Number(raw),p=e.dataset.score.split('.');
+      let o=state;for(let i=0;i<p.length-1;i++)o=o[p[i]];const key=p[p.length-1];
+      if(v!==null&&(!Number.isInteger(v)||v<0||v>5)){alert('Enter a whole number from 0 to 5.');e.value=o[key]??'';return}
       o[key]=v;
-      if(o.scoreA!=null&&o.scoreB!=null&&!scoreValid(+o.scoreA,+o.scoreB)){
-        alert('Scores must be whole numbers from 0 to 5. Tied scores are allowed and remain PENDING.');
-        o[key]=null;
-      }
+      if(o.scoreA!=null&&o.scoreB!=null&&!scoreValid(+o.scoreA,+o.scoreB)){alert('Scores must be whole numbers from 0 to 5. Tied scores are allowed and remain PENDING.');o[key]=null}
       if(p[0]==='bracket')buildBracket();
-      await save();
-      render();
-    });
-
-    document.querySelectorAll('[data-choice]').forEach(e=>e.onchange=async()=>{
-      const p=e.dataset.choice.split('.');
-      let o=state;
-      for(let i=0;i<p.length;i++)o=o[p[i]];
-      if(!e.value){
-        o.firstTeam=null;o.firstSide=null;
-      }else if(e.value==='a-attack'){
-        o.firstTeam=o.a;o.firstSide='Attack';
-      }else if(e.value==='a-defend'){
-        o.firstTeam=o.b;o.firstSide='Attack';
-      }
+      ensurePoolChoices();
       await save();
       render();
     });
@@ -249,7 +182,9 @@ if(!cfg){
     if(u){
       onSnapshot(ref,async s=>{
         if(s.exists())state=s.data();
-        if(ensurePoolChoices())await save();
+        let changed=ensurePoolChoices();
+        if(state.poolComplete){buildBracket();changed=true}
+        if(changed)await save();
         render();
       });
     }else login();
