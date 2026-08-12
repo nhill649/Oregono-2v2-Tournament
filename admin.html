@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Oregano 2v2 Tournament Scorer</title>
 <style>
-body{font:16px system-ui;margin:0;background:#090d12;color:#fff}.wrap{max-width:1100px;margin:auto;padding:28px}section,.login{background:#111820;border:1px solid #2a3743;border-radius:14px;padding:18px;margin:16px 0}button,input,select{padding:10px;border-radius:8px;border:1px solid #3a4855}button{background:#55d6c2;font-weight:800;cursor:pointer}input,select{background:#080d12;color:white}.login{max-width:430px;margin:60px auto}.login input{width:calc(100% - 22px);margin:6px 0}.error{color:#ff8d8d;margin-top:8px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.match{background:#0d141b;border:1px solid #2a3743;border-radius:10px;padding:14px}.row{display:grid;grid-template-columns:1fr 70px;gap:8px;margin:6px 0;padding:6px;border-radius:8px}.row.winner-row{font-weight:900}#pool .row.winner-row span{color:#55d6c2;font-weight:900}.small{color:#9aa8b5;font-size:12px}.status{color:#9aa8b5;font-size:12px;margin-top:4px}.actions{display:flex;gap:8px;flex-wrap:wrap}.choice{width:100%;margin-top:8px}.auto-choice{margin-top:8px;padding:10px;border:1px solid #2a3743;border-radius:8px;background:#111820}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #2a3743}th:nth-child(n+4),td:nth-child(n+4){text-align:center}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+body{font:16px system-ui;margin:0;background:#090d12;color:#fff}.wrap{max-width:1100px;margin:auto;padding:28px}section,.login{background:#111820;border:1px solid #2a3743;border-radius:14px;padding:18px;margin:16px 0}button,input,select{padding:10px;border-radius:8px;border:1px solid #3a4855}button{background:#55d6c2;font-weight:800;cursor:pointer}input,select{background:#080d12;color:white}.login{max-width:430px;margin:60px auto}.login input{width:calc(100% - 22px);margin:6px 0}.error{color:#ff8d8d;margin-top:8px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.match{background:#0d141b;border:1px solid #2a3743;border-radius:10px;padding:14px}.row{display:grid;grid-template-columns:1fr 70px;gap:8px;margin:6px 0;padding:6px;border-radius:8px}.row.winner-row{font-weight:900}#pool .row.winner-row span{color:#55d6c2;font-weight:900}.small{color:#9aa8b5;font-size:12px}.status{color:#9aa8b5;font-size:12px;margin-top:4px}.actions{display:flex;gap:8px;flex-wrap:wrap}.choice{width:100%;margin-top:8px}.auto-choice{margin-top:8px;padding:10px;border:1px solid #2a3743;border-radius:8px;background:#111820}.auto-choice strong{color:#55d6c2}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #2a3743}th:nth-child(n+4),td:nth-child(n+4){text-align:center}@media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -38,6 +38,18 @@ if(!cfg){
   const loser=m=>isFinal(m)?(+m.scoreA>+m.scoreB?m.b:m.a):null;
   const blankMatch=(a='TBD',b='TBD')=>({a,b,scoreA:null,scoreB:null,firstTeam:null,firstSide:null});
 
+  const autoPickPoolChoice=m=>{
+    if(!m||!m.a||!m.b||m.a==='TBD'||m.b==='TBD'||m.firstTeam)return false;
+    m.firstTeam=Math.random()<0.5?m.a:m.b;
+    m.firstSide='Attack';
+    return true;
+  };
+  const ensurePoolChoices=()=>{
+    let changed=false;
+    for(const m of state.pool||[])if(autoPickPoolChoice(m))changed=true;
+    return changed;
+  };
+
   function login(){
     appEl.innerHTML='<div class="login"><h1>🎮 Oregano 2v2 Tournament Scorer</h1><p class="small">Scoring access requires an email and password.</p><input id="email" type="email" placeholder="Email"><input id="password" type="password" placeholder="Password"><button id="loginBtn">Log In</button><p id="err" class="error"></p><p><a href="./" style="color:#55d6c2">← Public Viewer</a></p></div>';
     document.querySelector('#loginBtn').onclick=async()=>{
@@ -50,7 +62,7 @@ if(!cfg){
   function draw(){
     const t=shuffle(teams),omit=[[t[0],t[1]],[t[2],t[3]]],p=[];
     for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)if(!omit.some(x=>(x[0]===t[i]&&x[1]===t[j])||(x[0]===t[j]&&x[1]===t[i])))p.push([t[i],t[j]]);
-    return{pool:p.map((x,i)=>({id:'P'+(i+1),a:x[0],b:x[1],scoreA:null,scoreB:null,firstTeam:null,firstSide:null})),poolComplete:false,bracket:null,seeds:null};
+    return{pool:p.map((x,i)=>{const m={id:'P'+(i+1),a:x[0],b:x[1],scoreA:null,scoreB:null,firstTeam:null,firstSide:null};autoPickPoolChoice(m);return m}),poolComplete:false,bracket:null,seeds:null};
   }
 
   async function save(){await setDoc(ref,state)}
@@ -80,8 +92,6 @@ if(!cfg){
       return count?total/count:0;
     };
 
-    // Strength of Schedule is the average win percentage of each team's opponents.
-    // Higher schedule strength = harder schedule. Equal values get the same rank.
     const sosOrder=[...arr].sort((a,b)=>sosScore(b)-sosScore(a));
     let previous=null,rank=0;
     sosOrder.forEach((team,index)=>{
@@ -92,7 +102,6 @@ if(!cfg){
       previous=score;
     });
 
-    // Tiebreakers: Record -> Round Differential -> Strength of Schedule -> Rounds Won -> Rounds Lost.
     return arr.sort((a,b)=>
       b.w-a.w||
       a.l-b.l||
@@ -140,7 +149,6 @@ if(!cfg){
 
   function choiceValue(m){
     if(!m||!m.firstTeam)return'';
-    // Only two choices: listed team A attacks first, or listed team B attacks first.
     if(m.firstTeam===m.a)return m.firstSide==='Attack'?'a-attack':'a-defend';
     if(m.firstTeam===m.b)return m.firstSide==='Attack'?'a-defend':'a-attack';
     return'';
@@ -148,6 +156,11 @@ if(!cfg){
 
   function attackChoices(m,path,hasTeams){
     if(!hasTeams)return'';
+    if(path.startsWith('pool.')){
+      const attack=m.firstTeam||m.a;
+      const defend=attack===m.a?m.b:m.a;
+      return`<div class="auto-choice"><strong>Attack:</strong> ${attack} &nbsp;•&nbsp; <strong>Defend:</strong> ${defend}</div>`;
+    }
     const value=choiceValue(m);
     return`<select class="choice" data-choice="${path}"><option value="" ${value===''?'selected':''}>Choose who attacks first...</option><option value="a-attack" ${value==='a-attack'?'selected':''}>${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend" ${value==='a-defend'?'selected':''}>${m.a} — Defend / ${m.b} — Attack</option></select>`;
   }
@@ -234,7 +247,11 @@ if(!cfg){
 
   onAuthStateChanged(auth,u=>{
     if(u){
-      onSnapshot(ref,s=>{if(s.exists())state=s.data();render()});
+      onSnapshot(ref,async s=>{
+        if(s.exists())state=s.data();
+        if(ensurePoolChoices())await save();
+        render();
+      });
     }else login();
   });
 }
