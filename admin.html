@@ -50,7 +50,7 @@ if(!cfg){
   function draw(){
     const t=shuffle(teams),omit=[[t[0],t[1]],[t[2],t[3]]],p=[];
     for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)if(!omit.some(x=>(x[0]===t[i]&&x[1]===t[j])||(x[0]===t[j]&&x[1]===t[i])))p.push([t[i],t[j]]);
-    return{pool:p.map((x,i)=>({id:'P'+(i+1),a:x[0],b:x[1],scoreA:null,scoreB:null,firstTeam:Math.random()<.5?x[0]:x[1],firstSide:Math.random()<.5?'Attack':'Defend'})),poolComplete:false,bracket:null,seeds:null};
+    return{pool:p.map((x,i)=>({id:'P'+(i+1),a:x[0],b:x[1],scoreA:null,scoreB:null,firstTeam:null,firstSide:null})),poolComplete:false,bracket:null,seeds:null};
   }
 
   async function save(){await setDoc(ref,state)}
@@ -64,24 +64,44 @@ if(!cfg){
       a.rd+=x-y;b.rd+=y-x;a.roundsWon+=x;b.roundsWon+=y;a.roundsLost+=y;b.roundsLost+=x;a.opp[g.b]=true;b.opp[g.a]=true;
       if(x>y){a.w++;b.l++}else{b.w++;a.l++}
     }
+
     const arr=Object.values(M);
     const sosScore=t=>{
-      const opp=Object.keys(t.opp);if(!opp.length)return 0;
-      let wins=0,games=0;
-      for(const o of opp){wins+=M[o].w;games+=M[o].w+M[o].l}
-      return games?wins/games:0;
+      const opponents=Object.keys(t.opp);
+      if(!opponents.length)return 0;
+      let total=0,count=0;
+      for(const opponent of opponents){
+        const o=M[opponent];
+        if(!o)continue;
+        const games=o.w+o.l;
+        total+=games?o.w/games:0;
+        count++;
+      }
+      return count?total/count:0;
     };
-    const sosOrder=[...arr].sort((a,b)=>{
-      const as=sosScore(a),bs=sosScore(b);
-      if(bs!==as)return bs-as;
-      let ard=0,brd=0;
-      for(const o of Object.keys(a.opp))ard+=M[o].rd;
-      for(const o of Object.keys(b.opp))brd+=M[o].rd;
-      return brd-ard;
+
+    // Strength of Schedule is the average win percentage of each team's opponents.
+    // Higher schedule strength = harder schedule. Equal values get the same rank.
+    const sosOrder=[...arr].sort((a,b)=>sosScore(b)-sosScore(a));
+    let previous=null,rank=0;
+    sosOrder.forEach((team,index)=>{
+      const score=sosScore(team);
+      if(previous===null||score!==previous)rank=index+1;
+      team.sosRank=rank;
+      team.sosValue=score;
+      previous=score;
     });
-    let lastScore=null,lastRank=0;
-    sosOrder.forEach((x,i)=>{const score=sosScore(x);if(lastScore===null||score!==lastScore)lastRank=i+1;x.sosRank=lastRank;lastScore=score});
-    return arr.sort((a,b)=>b.w-a.w||a.l-b.l||b.rd-a.rd||a.sosRank-b.sosRank||b.roundsWon-a.roundsWon||a.roundsLost-b.roundsLost||a.name.localeCompare(b.name));
+
+    // Tiebreakers: Record -> Round Differential -> Strength of Schedule -> Rounds Won -> Rounds Lost.
+    return arr.sort((a,b)=>
+      b.w-a.w||
+      a.l-b.l||
+      b.rd-a.rd||
+      a.sosRank-b.sosRank||
+      b.roundsWon-a.roundsWon||
+      a.roundsLost-b.roundsLost||
+      a.name.localeCompare(b.name)
+    );
   }
 
   function seedMap(){
@@ -118,13 +138,26 @@ if(!cfg){
     return b;
   }
 
+  function choiceValue(m){
+    if(!m||!m.firstTeam)return'';
+    // Only two choices: listed team A attacks first, or listed team B attacks first.
+    if(m.firstTeam===m.a)return m.firstSide==='Attack'?'a-attack':'a-defend';
+    if(m.firstTeam===m.b)return m.firstSide==='Attack'?'a-defend':'a-attack';
+    return'';
+  }
+
+  function attackChoices(m,path,hasTeams){
+    if(!hasTeams)return'';
+    const value=choiceValue(m);
+    return`<select class="choice" data-choice="${path}"><option value="" ${value===''?'selected':''}>Choose who attacks first...</option><option value="a-attack" ${value==='a-attack'?'selected':''}>${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend" ${value==='a-defend'?'selected':''}>${m.a} — Defend / ${m.b} — Attack</option></select>`;
+  }
+
   function card(m,label,path){
     if(!m)m=blankMatch();
     const hasTeams=m.a&&m.b&&m.a!=='TBD'&&m.b!=='TBD';
     const status=isFinal(m)?'FINAL':'PENDING';
     const w=winner(m);
-    const choiceValue=m.firstTeam===m.a?(m.firstSide==='Attack'?'a-attack':m.firstSide==='Defend'?'a-defend':''):'';
-    const choices=path.startsWith('bracket.')&&hasTeams?`<select class="choice" data-choice="${path}"><option value="" ${choiceValue===''?'selected':''}>Choose who attacks first...</option><option value="a-attack" ${choiceValue==='a-attack'?'selected':''}>${m.a} — Attack / ${m.b} — Defend</option><option value="a-defend" ${choiceValue==='a-defend'?'selected':''}>${m.a} — Defend / ${m.b} — Attack</option></select>`:'';
+    const choices=attackChoices(m,path,hasTeams);
     const resetNote=label==='First Place Match 2'&&!hasTeams?'<p class="small">Only played if the Losers Bracket team wins First Place Match 1.</p>':'';
     const nameA=path.startsWith('pool.')?(m.a||'TBD'):displayTeam(m.a||'TBD');
     const nameB=path.startsWith('pool.')?(m.b||'TBD'):displayTeam(m.b||'TBD');
@@ -187,12 +220,15 @@ if(!cfg){
       const p=e.dataset.choice.split('.');
       let o=state;
       for(let i=0;i<p.length;i++)o=o[p[i]];
-      if(!e.value){o.firstTeam=null;o.firstSide=null}else{
-        const [team,side]=e.value.split('-');
-        o.firstTeam=team==='a'?o.a:o.b;
-        o.firstSide=side==='attack'?'Attack':'Defend';
+      if(!e.value){
+        o.firstTeam=null;o.firstSide=null;
+      }else if(e.value==='a-attack'){
+        o.firstTeam=o.a;o.firstSide='Attack';
+      }else if(e.value==='a-defend'){
+        o.firstTeam=o.b;o.firstSide='Attack';
       }
-      await save();render();
+      await save();
+      render();
     });
   }
 
