@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Oregano 2v2 Tournament Scorer</title>
 <style>
-body{font:16px system-ui;margin:0;background:#090d12;color:#fff}.wrap{max-width:1100px;margin:auto;padding:28px}section,.login{background:#111820;border:1px solid #2a3743;border-radius:14px;padding:18px;margin:16px 0}button,input{padding:10px;border-radius:8px;border:1px solid #3a4855}button{background:#55d6c2;font-weight:800;cursor:pointer}input{background:#080d12;color:white}.login{max-width:430px;margin:60px auto}.login input{width:calc(100% - 22px);margin:6px 0}.error{color:#ff8d8d;margin-top:8px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.match{background:#0d141b;border:1px solid #2a3743;border-radius:10px;padding:14px}.row{display:grid;grid-template-columns:1fr 70px;gap:8px;margin:6px 0;padding:6px;border-radius:8px;align-items:center}.row.winner-row{font-weight:900}#pool .row.winner-row span.team-name{color:#55d6c2;font-weight:900}.small{color:#9aa8b5;font-size:12px}.status{color:#9aa8b5;font-size:12px;margin-top:4px}.actions{display:flex;gap:8px;flex-wrap:wrap}.auto-choice{margin-top:8px;padding:8px 10px;border:1px solid #2a3743;border-radius:8px;background:#111820}.role-badge{display:inline-block;font-size:11px;line-height:1;padding:4px 6px;border-radius:5px;margin-left:7px;font-weight:900;vertical-align:middle}.role-atk{background:#ff9f43;color:#111}.role-def{background:#4da3ff;color:#07111b}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #2a3743}th:nth-child(n+4),td:nth-child(n+4){text-align:center}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+body{font:16px system-ui;margin:0;background:#090d12;color:#fff}.wrap{max-width:1100px;margin:auto;padding:28px}section,.login{background:#111820;border:1px solid #2a3743;border-radius:14px;padding:18px;margin:16px 0}button,input{padding:10px;border-radius:8px;border:1px solid #3a4855}button{background:#55d6c2;font-weight:800;cursor:pointer}button.danger{background:#ff6b6b;color:#111}input{background:#080d12;color:white}.login{max-width:430px;margin:60px auto}.login input{width:calc(100% - 22px);margin:6px 0}.error{color:#ff8d8d;margin-top:8px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.match{background:#0d141b;border:1px solid #2a3743;border-radius:10px;padding:14px}.row{display:grid;grid-template-columns:1fr 70px;gap:8px;margin:6px 0;padding:6px;border-radius:8px;align-items:center}.row.winner-row{font-weight:900}#pool .row.winner-row span.team-name{color:#55d6c2;font-weight:900}.small{color:#9aa8b5;font-size:12px}.status{color:#9aa8b5;font-size:12px;margin-top:4px}.actions{display:flex;gap:8px;flex-wrap:wrap}.auto-choice{margin-top:8px;padding:8px 10px;border:1px solid #2a3743;border-radius:8px;background:#111820}.role-badge{display:inline-block;font-size:11px;line-height:1;padding:4px 6px;border-radius:5px;margin-left:7px;font-weight:900;vertical-align:middle}.role-atk{background:#ff9f43;color:#111}.role-def{background:#4da3ff;color:#07111b}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #2a3743}th:nth-child(n+4),td:nth-child(n+4){text-align:center}@media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -38,8 +38,6 @@ if(!cfg){
   const loser=m=>isFinal(m)?(+m.scoreA>+m.scoreB?m.b:m.a):null;
   const blankMatch=(a='TBD',b='TBD')=>({a,b,scoreA:null,scoreB:null,firstTeam:null,firstSide:null});
 
-  // Every match gets its attack/defend assignment automatically. Once chosen,
-  // it is stored in Firestore so admin and viewer stay in sync.
   const autoPickChoice=m=>{
     if(!m||!m.a||!m.b||m.a==='TBD'||m.b==='TBD'||m.firstTeam)return false;
     m.firstTeam=Math.random()<0.5?m.a:m.b;
@@ -136,16 +134,21 @@ if(!cfg){
   }
 
   function render(){
-    appEl.innerHTML='<div class="wrap"><header><h1>Oregano 2v2 Tournament Scorer</h1><p class="small">🔒 Scoring access is protected by email and password.</p><div class="actions"><button id="draw">Randomize Pool Matches</button><button id="seed">Lock Pool & Create Bracket</button><button id="logout">Log Out</button><a href="./" style="color:#55d6c2;margin:10px">Public Viewer</a></div></header><section><h2>Pool Play</h2><div id="pool" class="grid"></div></section><section><h2>Standings</h2><div id="standings"></div></section><section><h2>Double Elimination</h2><div id="bracket" class="grid"></div></section></div>';
+    appEl.innerHTML='<div class="wrap"><header><h1>Oregano 2v2 Tournament Scorer</h1><p class="small">🔒 Scoring access is protected by email and password.</p><div class="actions"><button id="draw">Randomize Pool Matches</button><button id="resetPool" class="danger">Reset / Hide Pool Play</button><button id="seed">Lock Pool & Create Bracket</button><button id="logout">Log Out</button><a href="./" style="color:#55d6c2;margin:10px">Public Viewer</a></div></header><section><h2>Pool Play</h2><div id="pool" class="grid"></div></section><section><h2>Standings</h2><div id="standings"></div></section><section><h2>Double Elimination</h2><div id="bracket" class="grid"></div></section></div>';
 
     document.querySelector('#draw').onclick=async()=>{state=draw();await save();render()};
+    document.querySelector('#resetPool').onclick=async()=>{
+      if(!confirm('Reset and hide Pool Play from the viewer? This clears the current pool matches and standings data.'))return;
+      state.pool=[];state.poolComplete=false;state.seeds=null;
+      await save();render();
+    };
     document.querySelector('#seed').onclick=async()=>{
       if((state.pool||[]).length!==4||state.pool.some(x=>!finalScore(+x.scoreA,+x.scoreB))){alert('Finish all four pool matches with a final score: 4-0, 4-1, 4-2, 5-3, or 5-4. Tied scores remain PENDING.');return}
       state.poolComplete=true;state.seeds=standings().map(x=>x.name);state.bracket=null;buildBracket();await save();render();
     };
     document.querySelector('#logout').onclick=()=>signOut(auth);
 
-    document.querySelector('#pool').innerHTML=(state.pool||[]).map((m,i)=>card(m,'Pool Match '+(i+1),'pool.'+i)).join('')||'<p>Click Randomize Pool Matches.</p>';
+    document.querySelector('#pool').innerHTML=(state.pool||[]).map((m,i)=>card(m,'Pool Match '+(i+1),'pool.'+i)).join('')||'<p>Pool Play is currently hidden. Click Randomize Pool Matches to start a new pool.</p>';
     document.querySelector('#standings').innerHTML='<table><thead><tr><th>Seed</th><th>Team</th><th>Record</th><th>Round Diff</th><th>Strength of Schedule</th><th>Rounds Won</th><th>Rounds Lost</th></tr></thead><tbody>'+(standings().map((x,i)=>`<tr><td>${i+1}</td><td>${x.name}</td><td>${x.w}-${x.l}</td><td>${x.rd>=0?'+':''}${x.rd}</td><td>${x.sosRank}</td><td>${x.roundsWon}</td><td>${x.roundsLost}</td></tr>`).join(''))+'</tbody></table>';
 
     if(!state.poolComplete){
