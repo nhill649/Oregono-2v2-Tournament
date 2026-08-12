@@ -1,196 +1,68 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Oregono 2v2 Tournament | Live Bracket</title>
-<meta name="description" content="Live Rainbow Six Siege tournament bracket, pool play standings, and double-elimination results.">
-<meta name="theme-color" content="#0b0f14">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oregono 2v2 Tournament</title>
+<meta name="description" content="Live Oregono 2v2 Rainbow Six Siege tournament bracket.">
 <style>
-:root{--bg:#0b0f14;--panel:#121922;--panel2:#18212c;--text:#eef3f7;--muted:#9aa8b5;--accent:#4dd0c8;--danger:#ff6b6b;--line:#293542}
-*{box-sizing:border-box} body{margin:0;background:linear-gradient(145deg,#080b0f,#101821);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-.wrap{max-width:1250px;margin:auto;padding:28px 18px 60px}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.eyebrow{color:var(--accent);font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:12px}
-h1{font-size:38px;margin:4px 0 5px}.sub{color:var(--muted);margin:0}.panel{background:rgba(18,25,34,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:18px;box-shadow:0 12px 30px #0004}
-button,input,select{font:inherit}button{border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#071011;font-weight:800;cursor:pointer}button.secondary{background:#263340;color:var(--text)}button.danger{background:#632d35;color:#fff}
-button:disabled{opacity:.45;cursor:not-allowed}.hidden{display:none!important}.adminbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-input,select{background:#0d131a;border:1px solid #33404d;color:var(--text);border-radius:9px;padding:9px}.score{width:72px;text-align:center;font-size:18px;font-weight:800}
-h2{margin:0 0 12px;font-size:21px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.match{background:#0d141b;border:1px solid var(--line);border-radius:13px;padding:14px}.matchhead{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-bottom:10px}.teamrow{display:grid;grid-template-columns:1fr 72px;gap:8px;align-items:center;padding:7px 0}.teamrow.winner{font-weight:900;color:var(--accent)}.vs{color:var(--muted);font-size:12px;text-align:center;margin:3px 0}
-.meta{font-size:12px;color:var(--muted);margin-top:8px}.status{font-weight:800}.pill{display:inline-block;border:1px solid #40505e;border-radius:999px;padding:2px 7px;margin-left:5px;font-size:11px;color:#c7d2db}
-.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:650px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.rank{font-weight:900;color:var(--accent)}
-.bracket{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:14px;overflow:auto}.col{display:flex;flex-direction:column;gap:14px}.col h3{font-size:13px;color:var(--muted);text-transform:uppercase;margin:0 0 2px}
-.note{background:#0d141b;border-left:3px solid var(--accent);padding:10px 12px;color:#cbd5dc;border-radius:8px;margin-top:10px}.small{font-size:12px;color:var(--muted)}
-@media(max-width:800px){.top{display:block}.grid{grid-template-columns:1fr}.bracket{grid-template-columns:repeat(4,260px)}h1{font-size:30px}}
+:root{--bg:#090d12;--panel:#111820;--panel2:#18222c;--text:#f4f7fa;--muted:#9aa8b5;--accent:#55d6c2;--line:#2a3743;--danger:#ff7070}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17222d,#090d12 55%);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}.wrap{max-width:1250px;margin:auto;padding:28px 18px 60px}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.eyebrow{color:var(--accent);font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}h1{font-size:40px;margin:3px 0}.sub{color:var(--muted);margin:0}.panel{background:rgba(17,24,32,.94);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:18px;box-shadow:0 12px 35px #0005}h2{margin:0 0 12px}h3{margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.match{background:#0d141b;border:1px solid var(--line);border-radius:13px;padding:14px}.matchhead{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-bottom:9px}.row{display:grid;grid-template-columns:1fr 74px;gap:8px;align-items:center;padding:7px 0}.row.win{font-weight:900;color:var(--accent)}input,button{font:inherit}input{width:74px;background:#0a1016;border:1px solid #3a4855;color:var(--text);border-radius:9px;padding:9px;text-align:center;font-weight:900;font-size:18px}button{border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#06100e;font-weight:900;cursor:pointer}button.secondary{background:#293743;color:var(--text)}button.danger{background:#6b3038;color:white}.actions{display:flex;gap:8px;flex-wrap:wrap}.hidden{display:none!important}.meta,.small{color:var(--muted);font-size:12px;margin-top:8px}.pill{display:inline-block;border:1px solid #40515f;border-radius:999px;padding:2px 7px;margin-left:5px;font-size:11px}.notice{border-left:3px solid var(--accent);background:#0d141b;padding:11px 13px;border-radius:8px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:700px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:11px;text-transform:uppercase}.rank{color:var(--accent);font-weight:900}.bracket{display:grid;grid-template-columns:repeat(4,minmax(230px,1fr));gap:14px;overflow:auto}.col{display:flex;flex-direction:column;gap:14px}.choice{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.choice button{font-size:12px;padding:7px 9px}.choice button.selected{outline:2px solid var(--accent)}.status{font-weight:900}.live{color:var(--accent)}.footer{color:var(--muted);font-size:12px;margin-top:20px}@media(max-width:800px){.top{display:block}h1{font-size:30px}.grid{grid-template-columns:1fr}.bracket{grid-template-columns:repeat(4,260px)}}
 </style>
 </head>
-<body>
-<div class="wrap">
-  <div class="top">
-    <div><div class="eyebrow">Rainbow Six Siege • 2v2 Tournament</div><h1>Oregono 2v2 Tournament</h1><p class="sub">Live pool play → seeded double elimination</p></div>
-    <div class="adminbar">
-      <button id="loginBtn" class="secondary">Admin Login</button>
-      <button id="logoutBtn" class="secondary hidden">Log Out</button>
-    </div>
-  </div>
-
-  <div id="configNotice" class="panel">
-    <b>Website setup:</b> connect this site to Firebase using <code>firebase-config.js</code>. Once deployed, share the site URL with everyone.
-  </div>
-
-  <section class="panel">
-    <h2>Pool Play</h2>
-    <div id="poolControls" class="adminbar hidden">
-      <button id="newDrawBtn">Randomize Pool Draw</button>
-      <button id="finishPoolBtn" class="secondary">Seed Double Elimination</button>
-    </div>
-    <div id="pool" class="grid"></div>
-  </section>
-
-  <section class="panel">
-    <h2>Pool Standings & Seeding</h2>
-    <div class="tablewrap"><table><thead><tr><th>Seed</th><th>Team</th><th>Record</th><th>Round Diff</th><th>Common Opponent</th><th>Strength of Schedule</th></tr></thead><tbody id="standings"></tbody></table></div>
-    <div class="note">Tiebreakers: 1) round differential, 2) score against common opponent (when applicable), 3) strength of pool-play schedule. SOS uses the opponent's pool record, then opponent round differential.</div>
-  </section>
-
-  <section class="panel">
-    <h2>Double-Elimination Bracket</h2>
-    <div id="bracket" class="bracket"></div>
-    <div class="small" style="margin-top:12px">The higher seed gets the choice of Attack or Defend first in every bracket match. The admin records that choice. A Grand Final reset is created only if the losers-bracket team wins the first Grand Final.</div>
-  </section>
+<body><div class="wrap">
+<header class="top"><div><div class="eyebrow">Rainbow Six Siege • 2v2</div><h1>Oregono 2v2 Tournament</h1><p class="sub">Live pool play → seeded double elimination</p></div><div class="actions"><button id="login" class="secondary">Admin Login</button><button id="logout" class="secondary hidden">Log Out</button></div></header>
+<div id="setup" class="panel notice"><b>One-time setup:</b> this site needs the Firebase Web App settings in <code>firebase-config.js</code>. The GitHub repository is ready for GitHub Pages.</div>
+<section class="panel"><h2>Pool Play</h2><div id="adminPool" class="actions hidden"><button id="draw">Randomize 4 Pool Matches</button><button id="seed" class="secondary">Lock Pool & Seed Bracket</button></div><div id="pool" class="grid"></div></section>
+<section class="panel"><h2>Pool Standings & Seeding</h2><div class="tablewrap"><table><thead><tr><th>Seed</th><th>Team</th><th>Record</th><th>Round Diff</th><th>Common Opponent Score</th><th>Strength of Schedule</th></tr></thead><tbody id="standings"></tbody></table></div><p class="small">Tiebreakers: 1) round differential, 2) score against common opponent, 3) strength of pool-play schedule.</p></section>
+<section class="panel"><h2>Double-Elimination Bracket</h2><div id="bracket" class="bracket"></div><p class="small">Higher seed chooses Attack or Defend first. A Grand Final Reset appears only if the losers-bracket team wins the first Grand Final.</p></section>
+<div class="footer">Teams: Memphis & Sam • Preston & Roman • Eli & Sanath • Nolan & Xavier</div>
 </div>
-
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js';
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js';
+import {getFirestore,doc,setDoc,onSnapshot} from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';
 
-let firebaseConfig = null;
-try { firebaseConfig = (await import("./firebase-config.js")).firebaseConfig; } catch(e) {}
-const notice = document.getElementById("configNotice");
-if(!firebaseConfig){ notice.innerHTML = "<b>Setup needed:</b> add your Firebase settings to <code>firebase-config.js</code>. See README."; }
-else {
-  notice.classList.add("hidden");
-  const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
-  const stateRef=doc(db,"tournaments","siege-2026");
-  const teams=["Memphis & Sam","Preston & Roman","Eli & Sanath","Nolan & Xavier"];
-  let state, isAdmin=false;
-
-  const $=id=>document.getElementById(id);
-  $("loginBtn").onclick=async()=>{
-    const email=prompt("Admin email:");
-    const pass=prompt("Admin password:");
-    if(!email||!pass)return;
-    try{await signInWithEmailAndPassword(auth,email,pass)}catch(e){alert(e.message)}
-  };
-  $("logoutBtn").onclick=()=>signOut(auth);
-  onAuthStateChanged(auth,u=>{isAdmin=!!u; $("loginBtn").classList.toggle("hidden",isAdmin); $("logoutBtn").classList.toggle("hidden",!isAdmin); $("poolControls").classList.toggle("hidden",!isAdmin); render();});
-  onSnapshot(stateRef,s=>{state=s.exists()?s.data():initialState(); render();});
-
-  function initialState(){return {pool:[], bracket:{}, poolComplete:false};}
-  function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
-  function makeDraw(){
-    const s=shuffle(teams), games=[];
-    for(let i=0;i<4;i+=2) games.push({id:"P"+(i/2+1),a:s[i],b:s[i+1],scoreA:null,scoreB:null,first:Math.random()<.5?"A":"B"});
-    return {pool:games,bracket:{},poolComplete:false};
-  }
-  async function save(next){if(!isAdmin)return; await setDoc(stateRef,next)}
-
-  function scoreInputs(m, path){
-    const editable=isAdmin;
-    return `<div class="teamrow ${m.scoreA!=null&&m.scoreB!=null&&m.scoreA>m.scoreB?'winner':''}">
-      <div>${m.a}</div><input class="score" type="number" min="0" max="4" value="${m.scoreA??''}" ${editable?'':'disabled'} data-path="${path}.scoreA">
-    </div>
-    <div class="teamrow ${m.scoreA!=null&&m.scoreB!=null&&m.scoreB>m.scoreA?'winner':''}">
-      <div>${m.b}</div><input class="score" type="number" min="0" max="4" value="${m.scoreB??''}" ${editable?'':'disabled'} data-path="${path}.scoreB">
-    </div>`;
-  }
-  function matchCard(m,label,path,higherSeed){
-    if(!m)return `<div class="match"><div class="matchhead"><b>${label}</b></div><div class="small">Waiting for teams to advance.</div></div>`;
-    const done=m.scoreA!=null&&m.scoreB!=null;
-    const choice= m.first ? (m.first==="A"?m.a:m.b) : "";
-    return `<div class="match"><div class="matchhead"><b>${label}</b><span>${done?'<span class="status">Final</span>':'Pending'}</span></div>
-      ${scoreInputs(m,path)}
-      <div class="meta">First choice: ${choice||"Not selected"} ${higherSeed?'<span class="pill">Higher seed chooses</span>':""}</div>
-      ${isAdmin?`<div style="margin-top:9px;display:flex;gap:7px;flex-wrap:wrap">
-        <button class="secondary" data-choice="${path}.first" data-team="A">A attacks/defends first</button>
-        <button class="secondary" data-choice="${path}.first" data-team="B">B attacks/defends first</button>
-      </div>`:""}
-    </div>`;
-  }
-
-  function render(){
-    if(!state)return;
-    if(!state.pool?.length){
-      if(isAdmin){ state=makeDraw(); save(state); }
-      $("pool").innerHTML=`<div class="note">Waiting for the admin to generate the random pool-play draw.</div>`;
-    } else {
-      $("pool").innerHTML=state.pool.map((m,i)=>matchCard(m,"Pool Match "+(i+1),"pool."+i,false)).join("");
-    }
-    const standings=calcStandings();
-    $("standings").innerHTML=standings.map((t,i)=>`<tr><td class="rank">#${i+1}</td><td><b>${t.name}</b></td><td>${t.w}-${t.l}</td><td>${fmt(t.rd)}</td><td>${t.common}</td><td>${t.sos}</td></tr>`).join("");
-    renderBracket(standings);
-    bindInputs();
-  }
-  const fmt=n=>n>0?"+"+n:n;
-  function calcStandings(){
-    const map=Object.fromEntries(teams.map(n=>[n,{name:n,w:0,l:0,rd:0,opp:null,common:"N/A",sos:"N/A"}]));
-    (state.pool||[]).forEach(m=>{
-      if(m.scoreA==null||m.scoreB==null)return;
-      const a=map[m.a],b=map[m.b]; a.rd+=m.scoreA-m.scoreB;b.rd+=m.scoreB-m.scoreA;
-      if(m.scoreA>m.scoreB){a.w++;b.l++} else if(m.scoreB>m.scoreA){b.w++;a.l++}
-      a.opp=m.b;b.opp=m.a;
-    });
-    Object.values(map).forEach(t=>{
-      if(t.opp){const o=map[t.opp];t.sos=o.w+"-"+o.l+" / RD "+fmt(o.rd)}
-    });
-    return Object.values(map).sort((x,y)=> y.w-x.w || y.rd-x.rd || (y.sos.localeCompare(x.sos)));
-  }
-  function winner(m){if(!m||m.scoreA==null||m.scoreB==null||m.scoreA===m.scoreB)return null;return m.scoreA>m.scoreB?m.a:m.b}
-  function loser(m){const w=winner(m);return w?(w===m.a?m.b:m.a):null}
-  function getBracket(){
-    const b=state.bracket||{};
-    const s=calcStandings().map(x=>x.name);
-    return {
-      ...b,
-      wb1:b.wb1||{a:s[0],b:s[3],scoreA:null,scoreB:null,first:null},
-      wb2:b.wb2||{a:s[1],b:s[2],scoreA:null,scoreB:null,first:null}
-    };
-  }
-  function renderBracket(standings){
-    const b=getBracket();
-    if(!state.poolComplete && !state.bracket?.seeded){
-      $("bracket").innerHTML=`<div class="note">Finish both pool matches, then the admin can lock the standings and seed the double-elimination bracket.</div>`;return;
-    }
-    b.wbf=b.wbf||{a:winner(b.wb1),b:winner(b.wb2),scoreA:null,scoreB:null,first:null};
-    b.lb1=b.lb1||{a:loser(b.wb1),b:loser(b.wb2),scoreA:null,scoreB:null,first:null};
-    b.lb2=b.lb2||{a:loser(b.wbf),b:winner(b.lb1),scoreA:null,scoreB:null,first:null};
-    b.gf=b.gf||{a:winner(b.wbf),b:winner(b.lb2),scoreA:null,scoreB:null,first:null};
-    if(winner(b.gf)===b.gf.b && b.gf.a && b.gf.b) b.reset=b.reset||{a:b.gf.a,b:b.gf.b,scoreA:null,scoreB:null,first:null};
-    state.bracket=b;
-    $("bracket").innerHTML=`
-      <div class="col"><h3>Winners Round 1</h3>${matchCard(b.wb1,"WB Semifinal 1","bracket.wb1",true)}${matchCard(b.wb2,"WB Semifinal 2","bracket.wb2",true)}</div>
-      <div class="col"><h3>Winners Final / Losers</h3>${matchCard(b.wbf,"Winners Final","bracket.wbf",true)}${matchCard(b.lb1,"Losers Round 1","bracket.lb1",false)}</div>
-      <div class="col"><h3>Losers Final</h3>${matchCard(b.lb2,"Losers Final","bracket.lb2",false)}</div>
-      <div class="col"><h3>Championship</h3>${matchCard(b.gf,"Grand Final","bracket.gf",true)}${matchCard(b.reset,"Grand Final Reset","bracket.reset",true)}</div>`;
-    if(isAdmin)save(state);
-    bindInputs();
-  }
-  function setByPath(obj,path,val){const p=path.split(".");let x=obj;for(let i=0;i<p.length-1;i++)x=x[p[i]];x[p[p.length-1]]=val;}
-  function bindInputs(){
-    document.querySelectorAll("[data-path]").forEach(el=>el.onchange=async e=>{
-      if(!isAdmin)return; const v=e.target.value===""?null:Number(e.target.value); setByPath(state,e.target.dataset.path,v); await save(state); render();
-    });
-    document.querySelectorAll("[data-choice]").forEach(el=>el.onclick=async()=>{
-      if(!isAdmin)return; setByPath(state,el.dataset.choice,el.dataset.team); await save(state); render();
-    });
-  }
-  $("newDrawBtn").onclick=async()=>{if(confirm("Randomize the two pool matches and attack/defend choices? This replaces current pool scores.")){state=makeDraw();await save(state);render();}};
-  $("finishPoolBtn").onclick=async()=>{
-    if(state.pool.some(m=>m.scoreA==null||m.scoreB==null)){alert("Enter both pool scores first.");return;}
-    if(!confirm("Lock pool play and seed the double-elimination bracket from the standings?"))return;
-    const s=calcStandings();state.poolComplete=true;state.bracket={seeded:true,wb1:{a:s[0].name,b:s[3].name,scoreA:null,scoreB:null,first:null},wb2:{a:s[1].name,b:s[2].name,scoreA:null,scoreB:null,first:null}};await save(state);render();
-  };
+let firebaseConfig=null;try{firebaseConfig=(await import('./firebase-config.js')).firebaseConfig}catch(e){}
+const setup=document.querySelector('#setup');
+if(!firebaseConfig){setup.innerHTML='<b>Setup needed:</b> create Firebase, add your Web App settings to <code>firebase-config.js</code>, then redeploy. See README.'}
+else{
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),ref=doc(db,'tournaments','oregono-2v2');
+const teams=['Memphis & Sam','Preston & Roman','Eli & Sanath','Nolan & Xavier'];let state={pool:[],poolComplete:false,bracket:null,seeds:null},admin=false;
+const $=s=>document.querySelector(s),clone=x=>JSON.parse(JSON.stringify(x));
+const shuffle=a=>[...a].sort(()=>Math.random()-.5);
+function makeDraw(){
+  // Four teams, two games each, no repeat matchup. This is K4 minus a random perfect matching.
+  const t=shuffle(teams), omitted=[[t[0],t[1]],[t[2],t[3]]];
+  const pairs=[];for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)if(!omitted.some(p=>(p[0]===t[i]&&p[1]===t[j])||(p[0]===t[j]&&p[1]===t[i])))pairs.push([t[i],t[j]]);
+  return {pool:pairs.map((p,i)=>({id:'P'+(i+1),a:p[0],b:p[1],scoreA:null,scoreB:null,firstTeam:Math.random()<.5?p[0]:p[1],firstSide:Math.random()<.5?'Attack':'Defend'})),poolComplete:false,bracket:null,seeds:null};
 }
-</script>
-</body>
-</html>
+function validScore(a,b){return Number.isInteger(a)&&Number.isInteger(b)&&((a===4&&b>=0&&b<=3)||(b===4&&a>=0&&a<=3));}
+function save(){if(admin)return setDoc(ref,state)}
+function winner(m){if(!m||!validScore(Number(m.scoreA),Number(m.scoreB)))return null;return Number(m.scoreA)>Number(m.scoreB)?m.a:m.b}
+function loser(m){let w=winner(m);return w?(w===m.a?m.b:m.a):null}
+function seedMap(){return Object.fromEntries((state.seeds||[]).map((n,i)=>[n,i+1]))}
+function higher(a,b){let s=seedMap();return (s[a]||99)<(s[b]||99)?a:b}
+function commonScore(name,map){let scores=[];for(const m of state.pool||[]){if(m.scoreA==null||m.scoreB==null)continue;if(m.a!==name&&m.b!==name)continue;let opp=m.a===name?m.b:m.a;if(map[name].opponents.has(opp)&&map[name].opponents.get(opp).common){scores.push(map[name].opponents.get(opp).common)}else{scores.push({opp,for:m.a===name?Number(m.scoreA):Number(m.scoreB)})}}return scores.reduce((x,y)=>x+(typeof y==='number'?y:y.for),0)}
+function standings(){
+ const m=Object.fromEntries(teams.map(n=>[n,{name:n,w:0,l:0,rd:0,roundsFor:0,opponents:new Map()}]));
+ for(const g of state.pool||[]){if(!validScore(Number(g.scoreA),Number(g.scoreB)))continue;let a=m[g.a],b=m[g.b],sa=Number(g.scoreA),sb=Number(g.scoreB);a.roundsFor+=sa;b.roundsFor+=sb;a.rd+=sa-sb;b.rd+=sb-sa;if(sa>sb){a.w++;b.l++}else{b.w++;a.l++}a.opponents.set(g.b,{common:sa,opp:g.b});b.opponents.set(g.a,{common:sb,opp:g.a});}
+ for(const x of Object.values(m)){let common=0,commonOpp=0,sosW=0,sosL=0,sosRD=0;for(const [opp] of x.opponents){let o=m[opp];sosW+=o.w;sosL+=o.l;sosRD+=o.rd}for(const [opp,v] of x.opponents){if(m[opp].opponents.has(opp)){};for(const [other] of x.opponents){if(other!==opp&&m[other].opponents.has(opp))common+=v.common,commonOpp++}}
+ x.common=commonOpp?`${common}-${commonOpp}`:'N/A';x.sosW=sosW;x.sosL=sosL;x.sosRD=sosRD;x.sos=`${sosW}-${sosL} / RD ${sosRD>=0?'+':''}${sosRD}`;
+ }
+ return Object.values(m).sort((a,b)=>b.w-a.w||a.l-b.l||b.rd-a.rd||commonScore(b.name,m)-commonScore(a.name,m)||b.sosW-a.sosW||b.sosRD-a.sosRD||a.name.localeCompare(b.name));
+}
+function card(m,label,path,choose=true){if(!m)return `<div class="match"><div class="matchhead"><b>${label}</b></div><div class="small">Waiting for teams to advance.</div></div>`;let done=validScore(Number(m.scoreA),Number(m.scoreB)),w=winner(m),hs=choose&&m.a&&m.b?higher(m.a,m.b):null;return `<div class="match"><div class="matchhead"><b>${label}</b><span class="${done?'status live':''}">${done?'FINAL':'PENDING'}</span></div><div class="row ${w===m.a?'win':''}"><div>${m.a||'TBD'}</div><input data-score="${path}.scoreA" type="number" min="0" max="4" value="${m.scoreA??''}" ${admin?'':'disabled'}></div><div class="row ${w===m.b?'win':''}"><div>${m.b||'TBD'}</div><input data-score="${path}.scoreB" type="number" min="0" max="4" value="${m.scoreB??''}" ${admin?'':'disabled'}></div><div class="meta">${m.firstTeam?'First: '+m.firstTeam+' — '+m.firstSide:''}${hs?' <span class="pill">Higher seed: '+hs+'</span>':''}</div>${admin&&m.a&&m.b?`<div class="choice"><button class="secondary ${m.firstTeam===m.a&&m.firstSide==='Attack'?'selected':''}" data-choice="${path}" data-team="a" data-side="Attack">${m.a}: Attack</button><button class="secondary ${m.firstTeam===m.a&&m.firstSide==='Defend'?'selected':''}" data-choice="${path}" data-team="a" data-side="Defend">${m.a}: Defend</button><button class="secondary ${m.firstTeam===m.b&&m.firstSide==='Attack'?'selected':''}" data-choice="${path}" data-team="b" data-side="Attack">${m.b}: Attack</button><button class="secondary ${m.firstTeam===m.b&&m.firstSide==='Defend'?'selected':''}" data-choice="${path}" data-team="b" data-side="Defend">${m.b}: Defend</button></div>`:''}</div>`}
+function pathSet(path,key,val){let p=path.split('.'),o=state;for(let i=0;i<p.length-1;i++)o=o[p[i]];o[p[p.length-1]][key]=val}
+function getB(){let b=state.bracket||{},s=state.seeds||standings().map(x=>x.name);b.wb1=b.wb1||{a:s[0],b:s[3],scoreA:null,scoreB:null,firstTeam:null,firstSide:null};b.wb2=b.wb2||{a:s[1],b:s[2],scoreA:null,scoreB:null,firstTeam:null,firstSide:null};b.wbf={...(b.wbf||{}),a:winner(b.wb1),b:winner(b.wb2)};b.lb1={...(b.lb1||{}),a:loser(b.wb1),b:loser(b.wb2)};b.lb2={...(b.lb2||{}),a:loser(b.wbf),b:winner(b.lb1)};b.gf={...(b.gf||{}),a:winner(b.wbf),b:winner(b.lb2)};if(winner(b.gf)===b.gf.b)b.reset={...(b.reset||{}),a:b.gf.a,b:b.gf.b};return b}
+function render(){
+ if(!state.pool?.length){$('#pool').innerHTML='<div class="notice">Waiting for the administrator to generate the random pool schedule.</div>'}else $('#pool').innerHTML=state.pool.map((m,i)=>card(m,'Pool Match '+(i+1),'pool.'+i,false)).join('');
+ let ss=standings();$('#standings').innerHTML=ss.map((x,i)=>`<tr><td class="rank">#${i+1}</td><td><b>${x.name}</b></td><td>${x.w}-${x.l}</td><td>${x.rd>=0?'+':''}${x.rd}</td><td>${x.common||'N/A'}</td><td>${x.sos}</td></tr>`).join('');
+ if(!state.poolComplete){$('#bracket').innerHTML='<div class="notice">The bracket will unlock after all four pool matches are complete and the administrator locks the standings.</div>'}else{let b=getB();$('#bracket').innerHTML=`<div class="col"><h3>Winners Round 1</h3>${card(b.wb1,'WB Semifinal 1','bracket.wb1')}${card(b.wb2,'WB Semifinal 2','bracket.wb2')}</div><div class="col"><h3>Winners Final / Losers</h3>${card(b.wbf,'Winners Final','bracket.wbf')}${card(b.lb1,'Losers Round 1','bracket.lb1',false)}</div><div class="col"><h3>Losers Final</h3>${card(b.lb2,'Losers Final','bracket.lb2',false)}</div><div class="col"><h3>Championship</h3>${card(b.gf,'Grand Final','bracket.gf')}${b.reset?card(b.reset,'Grand Final Reset','bracket.reset'):''}</div>`;}
+ $('#login').classList.toggle('hidden',admin);$('#logout').classList.toggle('hidden',!admin);$('#adminPool').classList.toggle('hidden',!admin);bind();
+}
+function bind(){document.querySelectorAll('[data-score]').forEach(el=>el.onchange=async()=>{let v=el.value===''?null:Number(el.value);if(v!==null&&(v<0||v>4||!Number.isInteger(v))){alert('Score must be 0-4');render();return}let p=el.dataset.score.split('.'),o=state;for(let i=0;i<p.length-1;i++)o=o[p[i]];o[p[p.length-1]]=v;let m=o;let a=Number(m.scoreA),b=Number(m.scoreB);if(m.scoreA!==null&&m.scoreB!==null&&!validScore(a,b)){alert('A match must end 4-0 through 4-3.');m[el.dataset.score.endsWith('scoreA')?'scoreA':'scoreB']=null;render();return}await save();render()});document.querySelectorAll('[data-choice]').forEach(el=>el.onclick=async()=>{let p=el.dataset.choice.split('.'),m=state;for(let i=0;i<p.length;i++)m=m[p[i]];let team=el.dataset.team==='a'?m.a:m.b;m.firstTeam=team;m.firstSide=el.dataset.side;await save();render()})}
+$('#login').onclick=async()=>{let e=prompt('Admin email');let p=prompt('Admin password');if(!e||!p)return;try{await signInWithEmailAndPassword(auth,e,p)}catch(x){alert(x.message)}};$('#logout').onclick=()=>signOut(auth);
+$('#draw').onclick=async()=>{if(confirm('Replace the pool schedule and scores with a new random draw?')){state=makeDraw();await save();render()}};
+$('#seed').onclick=async()=>{if(!state.pool.length||state.pool.some(m=>!validScore(Number(m.scoreA),Number(m.scoreB)))){alert('Enter valid scores for all four pool matches first.');return}if(!confirm('Lock pool play and seed the double-elimination bracket?'))return;state.poolComplete=true;state.seeds=standings().map(x=>x.name);state.bracket=null;await save();render()};
+onAuthStateChanged(auth,u=>{admin=!!u;render()});onSnapshot(ref,s=>{if(s.exists())state=s.data();else if(admin){state=makeDraw();save()}render()});
+}
+</script></body></html>
