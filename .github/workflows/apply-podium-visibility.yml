@@ -1,0 +1,43 @@
+name: Apply podium visibility change
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update viewer podium visibility
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+
+          old_section = '<section class="panel podium-panel">'
+          new_section = '<section id="viewer-podium-panel" class="panel podium-panel" style="display:none">'
+          if old_section in s and 'id="viewer-podium-panel"' not in s:
+              s = s.replace(old_section, new_section, 1)
+
+          old_fn = "function renderPodium(){const el=document.querySelector('#viewerPodiumGrid');if(!el)return;const b=bracket(),finalMatch=(b.fp2&&b.fp2.a&&b.fp2.b&&b.fp2.a!=='TBD'&&b.fp2.b!=='TBD')?b.fp2:b.fp1;let first=placementTeam(finalMatch,'winner'),second=placementTeam(finalMatch,'loser'),third=null,fourth=null;if(isF(b.lb2))third=placementTeam(b.lb2,'loser');if(isF(b.lb1))fourth=placementTeam(b.lb1,'loser');const items=[['1st Place',first,'first'],['2nd Place',second,'second'],['3rd Place',third,'third'],['4th Place',fourth,'fourth']];el.innerHTML=items.map(([rank,team,cls])=>`<div class=\"podium-place ${cls}\"><div class=\"rank\">${rank}</div><div class=\"podium-team\">${team||'TBD'}</div></div>`).join('')}"
+          new_fn = "function renderPodium(){const el=document.querySelector('#viewerPodiumGrid'),panel=document.querySelector('#viewer-podium-panel');if(!el||!panel)return;const b=bracket(),finalMatch=(b.fp2&&b.fp2.a&&b.fp2.b&&b.fp2.a!=='TBD'&&b.fp2.b!=='TBD')?b.fp2:b.fp1;let first=placementTeam(finalMatch,'winner'),second=placementTeam(finalMatch,'loser'),third=null,fourth=null;if(isF(b.lb2))third=placementTeam(b.lb2,'loser');if(isF(b.lb1))fourth=placementTeam(b.lb1,'loser');if(!fourth){panel.style.display='none';el.innerHTML='';return}panel.style.display='block';const items=[['1st Place',first,'first'],['2nd Place',second,'second'],['3rd Place',third,'third'],['4th Place',fourth,'fourth']];el.innerHTML=items.map(([rank,team,cls])=>`<div class=\"podium-place ${cls}\"><div class=\"rank\">${rank}</div><div class=\"podium-team\">${team||'TBD'}</div></div>`).join('')}"
+          if old_fn in s:
+              s = s.replace(old_fn, new_fn, 1)
+
+          p.write_text(s)
+          PY
+
+      - name: Commit website change and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-podium-visibility.yml
+          git add index.html
+          git commit -m "Hide viewer podium until fourth place is confirmed"
+          git push
