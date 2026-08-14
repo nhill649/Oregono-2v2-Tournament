@@ -22,8 +22,8 @@ db = firestore.client()
 stop_event = threading.Event()
 worker_thread = None
 
-# MVP is impact-first. Reinforcing is intentionally the least important factor by far.
-MVP_WEIGHTS = {'kills':1.00,'assists':0.45,'deaths':-0.55,'headshots':0.15,'plants':1.25,'defusals':1.50,'entryKills':0.75,'entryDeaths':-0.35,'clutches':2.00,'impact':1.00,'reinforcements':0.005}
+# MVP is impact-first. Reinforcements are tracked for completeness but NEVER contribute to MVP.
+MVP_WEIGHTS = {'kills':1.00,'assists':0.45,'deaths':-0.55,'headshots':0.15,'plants':1.25,'defusals':1.50,'entryKills':0.75,'entryDeaths':-0.35,'clutches':2.00,'impact':1.00}
 
 def auth(authorization):
     if authorization != f'Bearer {TOKEN}': raise HTTPException(401, 'Unauthorized')
