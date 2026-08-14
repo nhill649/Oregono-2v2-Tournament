@@ -1,112 +1,181 @@
-import os, re, json, time, threading, subprocess
+import os, json, time, threading, subprocess
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
-import cv2, numpy as np, pytesseract
+
+import cv2
+import numpy as np
 from fastapi import FastAPI, Header, HTTPException
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-app=FastAPI(title='R6 Custom Game Stats Worker')
-TOKEN=os.getenv('WORKER_TOKEN','change-me')
-PROJECT_ID=os.getenv('FIREBASE_PROJECT_ID','oregano-2v2-tournament')
-SERVICE_JSON=os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON','')
-if SERVICE_JSON:
-    cred=credentials.Certificate(json.loads(SERVICE_JSON))
-    firebase_admin.initialize_app(cred)
-else:
-    firebase_admin.initialize_app()
-db=firestore.client()
-stop_event=threading.Event(); worker_thread=None
+from processor.r6_detector import detect
 
-# R6 scoreboard OCR is intentionally conservative: a low-confidence read is ignored
-# instead of writing bad stats. The crop can be changed with SCOREBOARD_CROP.
-def crop_frame(frame):
-    raw=os.getenv('SCOREBOARD_CROP','0.08,0.15,0.92,0.90')
-    x1,y1,x2,y2=map(float,raw.split(',')); h,w=frame.shape[:2]
-    return frame[int(y1*h):int(y2*h),int(x1*w):int(x2*w)]
+app = FastAPI(title='R6 Custom Game Stats Worker')
+TOKEN = os.getenv('WORKER_TOKEN', 'change-me')
+SERVICE_JSON = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON', '')
+if not firebase_admin._apps:
+    if SERVICE_JSON:
+        firebase_admin.initialize_app(credentials.Certificate(json.loads(SERVICE_JSON)))
+    else:
+        firebase_admin.initialize_app()
+db = firestore.client()
+stop_event = threading.Event()
+worker_thread = None
 
-def ocr_lines(frame):
-    img=crop_frame(frame); gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY); gray=cv2.resize(gray,None,fx=1.8,fy=1.8,interpolation=cv2.INTER_CUBIC)
-    _,thr=cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    txt=pytesseract.image_to_string(thr,config='--psm 6')
-    return [x.strip() for x in txt.splitlines() if x.strip()]
+MVP_WEIGHTS = {
+    'kills': 1.00,
+    'assists': 0.45,
+    'deaths': -0.55,
+    'headshots': 0.15,
+    'plants': 1.25,
+    'defusals': 1.50,
+    'entryKills': 0.75,
+    'entryDeaths': -0.35,
+    'clutches': 2.00,
+    'impact': 1.00,
+}
 
-def parse_scoreboard(lines, known_players):
-    # Common scoreboard row shape is player name followed by numeric K/D/A fields.
-    # Names are matched against the tournament roster when available.
-    found=[]
-    for name in known_players:
-        for line in lines:
-            if name.lower() not in line.lower(): continue
-            nums=[int(x) for x in re.findall(r'(?<!\d)(\d{1,2})(?!\d)',line)]
-            if len(nums)>=3:
-                found.append({'name':name,'kills':nums[-3],'deaths':nums[-2],'assists':nums[-1]})
+
+def auth(authorization):
+    if authorization != f'Bearer {TOKEN}':
+        raise HTTPException(401, 'Unauthorized')
+
+
+def mvp_score(p: dict) -> float:
+    score = 0.0
+    for key, weight in MVP_WEIGHTS.items():
+        score += float(p.get(key, 0) or 0) * weight
+    # Survivability bonus without rewarding passive play over objective impact.
+    rounds = max(int(p.get('rounds', 0) or 0), 1)
+    score += max(0.0, (rounds - int(p.get('deaths', 0) or 0)) / rounds) * 2.0
+    return round(score, 2)
+
+
+def roster_from(data: dict) -> list[str]:
+    names = [x.get('name') for x in data.get('playerList', []) if x.get('name')]
+    if names:
+        return names
+    return [
+        'Thunderpants324', 'Prestochango884', 'XaJoPaSa', 'Nitro lox',
+        'Muffinman', 'Restoredcamp884', 'PatentHorse2227', 'EZ Vxvid'
+    ]
+
+
+def merge_observations(data: dict, observations: list[dict], stream_url: str):
+    players = data.setdefault('players', {})
+    for obs in observations:
+        name = obs['player']
+        p = players.setdefault(name, {
+            'name': name, 'team': '', 'kills': 0, 'deaths': 0, 'assists': 0,
+            'headshots': 0, 'plants': 0, 'defusals': 0, 'entryKills': 0,
+            'entryDeaths': 0, 'clutches': 0, 'impact': 0, 'rounds': 0,
+            'matches': 0, 'mvpScore': 0
+        })
+        # OCR is a scoreboard snapshot, not a delta. Keep the highest verified
+        # snapshot so repeated frames don't inflate tournament totals.
+        for key in ('kills', 'deaths', 'assists', 'headshots', 'plants', 'defusals'):
+            if key in obs:
+                p[key] = max(int(p.get(key, 0) or 0), int(obs[key]))
+        p['mvpScore'] = mvp_score(p)
+
+    leaders = sorted(players.values(), key=lambda x: x.get('mvpScore', 0), reverse=True)
+    data['currentMVP'] = leaders[0] if leaders else None
+    data['mvpHistory'] = data.get('mvpHistory', [])
+    data['workerLastEventAt'] = time.time()
+    data['workerStatus'] = 'processing'
+    for stream in data.setdefault('streams', []):
+        if stream.get('url') == stream_url:
+            stream['live'] = True
+            stream['status'] = 'R6 video processor connected'
+            stream['lastFrameAt'] = time.time()
+    return data
+
+
+def frame_stream(stream: dict):
+    url = stream.get('url', '').strip()
+    if not url:
+        return
+    proc = subprocess.Popen(
+        ['streamlink', '--stdout', url, 'best'],
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+    )
+    ff = subprocess.Popen(
+        ['ffmpeg', '-loglevel', 'error', '-i', 'pipe:0', '-f', 'image2pipe',
+         '-vcodec', 'mjpeg', '-vf', 'fps=1', '-'],
+        stdin=proc.stdout, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+    )
+    buf = b''
+    started = time.time()
+    ref = db.collection('tournaments').document('oregano-stats')
+    try:
+        while not stop_event.is_set():
+            chunk = ff.stdout.read(65536)
+            if not chunk:
                 break
-    return found
+            buf += chunk
+            a = buf.find(b'\xff\xd8')
+            b = buf.find(b'\xff\xd9', a + 2)
+            if a < 0 or b < 0:
+                if len(buf) > 2_000_000:
+                    buf = buf[-500_000:]
+                continue
+            jpg = buf[a:b + 2]
+            buf = buf[b + 2:]
+            frame = cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR)
+            if frame is None:
+                continue
+            snap = ref.get()
+            data = snap.to_dict() or {}
+            observations = detect(frame, roster_from(data), time.time() - started)
+            if observations:
+                ref.set(merge_observations(data, observations, url))
+    finally:
+        for p in (ff, proc):
+            try:
+                p.kill()
+            except Exception:
+                pass
 
-def mvp_score(p):
-    k=p.get('kills',0); a=p.get('assists',0); d=p.get('deaths',0)
-    entry=p.get('entryKills',0); plants=p.get('plants',0); entryd=p.get('entryDeaths',0)
-    # Simple transparent tournament formula. It can be tuned later with real match data.
-    return round(k*1.0+a*0.45-d*0.55+entry*0.75+plants*1.25-entryd*0.35,2)
-
-def update_player(snap, obs):
-    data=snap.to_dict() or {}; players=data.get('players',{})
-    for o in obs:
-        p=players.setdefault(o['name'],{'name':o['name'],'team':'','kills':0,'deaths':0,'assists':0,'headshots':0,'rounds':0,'matches':0,'mvpScore':0})
-        # This worker receives repeated scoreboard observations. Store the latest
-        # scoreboard as a match snapshot rather than blindly adding every poll.
-        p.update({k:o[k] for k in ('kills','deaths','assists') if k in o})
-    data['players']=players; return data
-
-def process_stream(stream):
-    url=stream.get('url','');
-    if not url: return
-    proc=subprocess.Popen(['streamlink','--stdout',url,'best'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
-    ff=subprocess.Popen(['ffmpeg','-loglevel','error','-i','pipe:0','-f','image2pipe','-vcodec','mjpeg','-vf','fps=0.5','-'],stdin=proc.stdout,stdout=subprocess.PIPE)
-    buf=b''; snap_ref=db.collection('tournaments').document('oregano-stats')
-    while not stop_event.is_set():
-        chunk=ff.stdout.read(65536)
-        if not chunk: break
-        buf+=chunk
-        a=buf.find(b'\xff\xd8'); b=buf.find(b'\xff\xd9',a+2)
-        if a<0 or b<0: continue
-        jpg=buf[a:b+2]; buf=buf[b+2:]
-        frame=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
-        if frame is None: continue
-        snap=snap_ref.get(); data=snap.to_dict() or {}; roster=[x.get('name') for x in data.get('playerList',[]) if x.get('name')]
-        obs=parse_scoreboard(ocr_lines(frame),roster)
-        if not obs: continue
-        data=update_player(snap,obs); data.setdefault('streams',[])
-        for s in data['streams']:
-            if s.get('url')==url: s['live']=True; s['status']='OCR processor connected'
-        db.collection('tournaments').document('oregono-stats').set(data)
-    ff.kill(); proc.kill()
 
 def worker_loop():
     while not stop_event.is_set():
         try:
-            data=db.collection('tournaments').document('oregono-stats').get().to_dict() or {}
-            for stream in data.get('streams',[]):
-                if stop_event.is_set(): break
-                process_stream(stream)
-        except Exception as e:
-            db.collection('tournaments').document('oregono-stats').set({'workerError':str(e)},merge=True)
-        time.sleep(5)
+            data = db.collection('tournaments').document('oregano-stats').get().to_dict() or {}
+            streams = [s for s in data.get('streams', []) if s.get('enabled', True) and s.get('url')]
+            if not streams:
+                time.sleep(5)
+                continue
+            # Process all available perspectives concurrently; one stream can never
+            # block the others.
+            with ThreadPoolExecutor(max_workers=min(8, len(streams))) as pool:
+                futures = [pool.submit(frame_stream, s) for s in streams]
+                while not stop_event.is_set() and any(not f.done() for f in futures):
+                    time.sleep(1)
+        except Exception as exc:
+            db.collection('tournaments').document('oregano-stats').set(
+                {'workerError': str(exc), 'workerStatus': 'error'}, merge=True
+            )
+        time.sleep(2)
 
-def auth(authorization):
-    if authorization != f'Bearer {TOKEN}': raise HTTPException(401,'Unauthorized')
 
 @app.get('/health')
-def health(): return {'ok':True,'running':worker_thread is not None and worker_thread.is_alive()}
+def health():
+    return {'ok': True, 'running': bool(worker_thread and worker_thread.is_alive())}
+
 
 @app.get('/start')
-def start(authorization: str|None=Header(default=None)):
+def start(authorization: str | None = Header(default=None)):
     global worker_thread
     auth(authorization)
     if worker_thread is None or not worker_thread.is_alive():
-        stop_event.clear(); worker_thread=threading.Thread(target=worker_loop,daemon=True); worker_thread.start()
-    return {'ok':True,'running':True}
+        stop_event.clear()
+        worker_thread = threading.Thread(target=worker_loop, daemon=True)
+        worker_thread.start()
+    return {'ok': True, 'running': True, 'maxStreams': 8}
+
 
 @app.get('/stop')
-def stop(authorization: str|None=Header(default=None)):
-    auth(authorization); stop_event.set(); return {'ok':True,'running':False}
+def stop(authorization: str | None = Header(default=None)):
+    auth(authorization)
+    stop_event.set()
+    return {'ok': True, 'running': False}
