@@ -44,20 +44,23 @@ def install(app_module):
                             totals[name][key] = max(0, float(totals[name].get(key, 0) or 0) - float(value or 0))
 
             match_stats = {}
+            numeric_fields = (
+                "kills", "deaths", "assists", "headshots", "plants", "defusals", "rounds",
+                "clutches", "entryKills", "entryDeaths", "reinforcements", "abilityImpact",
+                "gadgetUses", "supportActions", "gameWinningMoves", "roundWins", "tradeKills",
+                "tradedDeaths", "survivalRounds", "firstDeaths", "multiKills", "aces"
+            )
             for p in players:
                 name = p["name"]
                 target = totals.setdefault(name, {
                     "name": name, "team": "", "kills": 0, "deaths": 0, "assists": 0,
-                    "headshots": 0, "plants": 0, "defusals": 0, "rounds": 0,
-                    "clutches": 0, "entryKills": 0, "entryDeaths": 0,
-                    "reinforcements": 0, "abilityImpact": 0, "gadgetUses": 0,
-                    "supportActions": 0, "gameWinningMoves": 0, "roundWins": 0,
-                    "matches": 0,
+                    "headshots": 0, "plants": 0, "defusals": 0, "rounds": 0, "clutches": 0,
+                    "entryKills": 0, "entryDeaths": 0, "reinforcements": 0, "abilityImpact": 0,
+                    "gadgetUses": 0, "supportActions": 0, "gameWinningMoves": 0, "roundWins": 0,
+                    "tradeKills": 0, "tradedDeaths": 0, "survivalRounds": 0, "firstDeaths": 0,
+                    "multiKills": 0, "aces": 0, "matches": 0,
                 })
-                contribution = {key: float(p.get(key, 0) or 0) for key in (
-                    "kills", "deaths", "assists", "headshots", "plants", "defusals",
-                    "rounds", "clutches", "entryKills", "entryDeaths", "reinforcements",
-                    "abilityImpact", "gadgetUses", "supportActions", "gameWinningMoves", "roundWins")}
+                contribution = {key: float(p.get(key, 0) or 0) for key in numeric_fields}
                 match_stats[name] = contribution
                 for key, value in contribution.items():
                     target[key] = float(target.get(key, 0) or 0) + value
@@ -65,6 +68,10 @@ def install(app_module):
                 target["teamIndex"] = p.get("teamIndex")
                 target["headshotPct"] = round(float(target.get("headshots", 0)) / max(float(target.get("kills", 0)), 1) * 100, 1)
                 target["kd"] = round(float(target.get("kills", 0)) / max(float(target.get("deaths", 0)), 1), 2)
+                target["killsPerRound"] = round(float(target.get("kills", 0)) / max(float(target.get("rounds", 0)), 1), 2)
+                target["assistsPerRound"] = round(float(target.get("assists", 0)) / max(float(target.get("rounds", 0)), 1), 2)
+                target["survivalPct"] = round(max(0, float(target.get("rounds", 0)) - float(target.get("deaths", 0))) / max(float(target.get("rounds", 0)), 1) * 100, 1)
+                target["entrySuccessPct"] = round(float(target.get("entryKills", 0)) / max(float(target.get("entryKills", 0)) + float(target.get("entryDeaths", 0)), 1) * 100, 1)
 
             data.setdefault("matchStats", {})[str(match_index)] = match_stats
             for p in totals.values():
@@ -78,8 +85,11 @@ def install(app_module):
             match["map"] = result.get("map")
             match["gameVersion"] = result.get("gameVersion")
             match["matchType"] = result.get("matchType")
+            match["gamemode"] = result.get("gamemode")
             match["parsedPlayers"] = len(players)
             match["parsedEvents"] = len(result.get("matchFeedback") or [])
+            match["confirmedStats"] = ["kills", "deaths", "headshots", "plants", "defusals"]
+            match["derivedStats"] = ["kd", "headshotPct", "killsPerRound", "assistsPerRound", "survivalPct", "entrySuccessPct", "multiKills", "aces"]
             matches[match_index] = match
             data["matches"] = matches
             data["workerStatus"] = "ready"
