@@ -22,8 +22,8 @@ db = firestore.client()
 stop_event = threading.Event()
 worker_thread = None
 
-# MVP is impact-first. Reinforcements are tracked but contribute only 3% of the MVP factor budget.
-MVP_WEIGHTS = {'kills':1.00,'assists':0.45,'deaths':-0.55,'headshots':0.15,'plants':1.25,'defusals':1.50,'entryKills':0.75,'entryDeaths':-0.35,'clutches':2.00,'impact':1.00,'reinforcements':0.03}
+# MVP is impact-first. Reinforcements contribute 3%; unique ability usage contributes 10%.
+MVP_WEIGHTS = {'kills':1.00,'assists':0.45,'deaths':-0.55,'headshots':0.15,'plants':1.25,'defusals':1.50,'entryKills':0.75,'entryDeaths':-0.35,'clutches':2.00,'impact':1.00,'reinforcements':0.03,'abilityImpact':0.10}
 
 def auth(authorization):
     if authorization != f'Bearer {TOKEN}': raise HTTPException(401, 'Unauthorized')
@@ -42,9 +42,9 @@ def merge_observations(data: dict, observations: list[dict], stream_url: str):
     players=data.setdefault('players',{})
     for obs in observations:
         name=obs['player']
-        p=players.setdefault(name,{'name':name,'team':'','kills':0,'deaths':0,'assists':0,'headshots':0,'plants':0,'defusals':0,'entryKills':0,'entryDeaths':0,'clutches':0,'impact':0,'reinforcements':0,'rounds':0,'matches':0,'mvpScore':0})
-        for key in ('kills','deaths','assists','headshots','plants','defusals','reinforcements'):
-            if key in obs: p[key]=max(int(p.get(key,0) or 0),int(obs[key]))
+        p=players.setdefault(name,{'name':name,'team':'','kills':0,'deaths':0,'assists':0,'headshots':0,'plants':0,'defusals':0,'entryKills':0,'entryDeaths':0,'clutches':0,'impact':0,'reinforcements':0,'abilityImpact':0,'rounds':0,'matches':0,'mvpScore':0})
+        for key in ('kills','deaths','assists','headshots','plants','defusals','reinforcements','abilityImpact'):
+            if key in obs: p[key]=max(float(p.get(key,0) or 0),float(obs[key]))
         p['mvpScore']=mvp_score(p)
     leaders=sorted(players.values(),key=lambda x:x.get('mvpScore',0),reverse=True)
     data['currentMVP']=leaders[0] if leaders else None
