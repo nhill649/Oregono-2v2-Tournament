@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "R6 Tournament Detection Event",
+  "type": "object",
+  "required": ["eventId", "type", "timestamp", "sourceStream", "confidence"],
+  "properties": {
+    "eventId": {"type": "string"},
+    "type": {"type": "string", "enum": ["round_start", "round_end", "kill", "death", "headshot", "assist", "plant", "defusal", "defuse_denial", "entry_kill", "first_death", "trade", "clutch_start", "clutch_win", "clutch_loss"]},
+    "timestamp": {"type": "number", "minimum": 0},
+    "sourceStream": {"type": "string"},
+    "round": {"type": ["integer", "null"], "minimum": 1},
+    "player": {"type": ["string", "null"]},
+    "target": {"type": ["string", "null"]},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "evidence": {"type": "string"}
+  }
+}
