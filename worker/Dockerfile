@@ -9,7 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir
 COPY --from=r6parser /go/bin/r6-dissect /usr/local/bin/r6-dissect
 COPY worker/app.py ./app.py
 COPY worker/replay_parser.py ./replay_parser.py
+COPY worker/rec_worker.py ./rec_worker.py
 COPY processor ./processor
 ENV PYTHONUNBUFFERED=1
 ENV R6_DISSECT_BIN=/usr/local/bin/r6-dissect
-CMD ["uvicorn","app:app","--host","0.0.0.0","--port","8080"]
+CMD ["python","-c","import uvicorn,app,rec_worker; rec_worker.install(app); uvicorn.run(app.app,host='0.0.0.0',port=8080)"]
