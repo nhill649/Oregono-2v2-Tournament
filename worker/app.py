@@ -22,8 +22,8 @@ db = firestore.client()
 stop_event = threading.Event()
 worker_thread = None
 
-# MVP is impact-first. Reinforcements are tracked but contribute exactly 0.5% of the MVP factor budget.
-MVP_WEIGHTS = {'kills':1.00,'assists':0.45,'deaths':-0.55,'headshots':0.15,'plants':1.25,'defusals':1.50,'entryKills':0.75,'entryDeaths':-0.35,'clutches':2.00,'impact':1.00,'reinforcements':0.005}
+# MVP is impact-first. Reinforcements are tracked but contribute only 3% of the MVP factor budget.
+MVP_WEIGHTS = {'kills':1.00,'assists':0.45,'deaths':-0.55,'headshots':0.15,'plants':1.25,'defusals':1.50,'entryKills':0.75,'entryDeaths':-0.35,'clutches':2.00,'impact':1.00,'reinforcements':0.03}
 
 def auth(authorization):
     if authorization != f'Bearer {TOKEN}': raise HTTPException(401, 'Unauthorized')
@@ -32,7 +32,7 @@ def mvp_score(p: dict) -> float:
     score=sum(float(p.get(k,0) or 0)*w for k,w in MVP_WEIGHTS.items())
     rounds=max(int(p.get('rounds',0) or 0),1)
     score += max(0.0,(rounds-int(p.get('deaths',0) or 0))/rounds)*2.0
-    return round(score,2)
+    return round(score,1)
 
 def roster_from(data: dict) -> list[str]:
     names=[x.get('name') for x in data.get('playerList',[]) if x.get('name')]
