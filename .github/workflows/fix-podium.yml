@@ -1,0 +1,36 @@
+name: Fix podium placement
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, 'Fix podium placement') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix podium calculation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('index.html')
+          s = p.read_text()
+          old = re.search(r'function renderPodium\(\)\{.*?\nfunction render\(\)', s, re.S)
+          if not old:
+              raise SystemExit('renderPodium function not found')
+          new = '''function renderPodium(){let panel=document.querySelector('#viewer-podium-panel'),grid=document.querySelector('#viewerPodiumGrid'),b=bracket(),f=isF(b.fp2)?b.fp2:isF(b.fp1)?b.fp1:null;if(!f){panel.style.display='none';return}let champ=win(f),runner=lose(f);if(!champ||!runner){panel.style.display='none';return}let third=lose(b.lb2),fourth=lose(b.lb1),placements=[champ,runner,third,fourth],seen=new Set(),names=[];for(const n of placements){if(n&&n!=='TBD'&&!seen.has(n)){seen.add(n);names.push(n)}}for(const n of teams){if(names.length>=4)break;if(!seen.has(n)){seen.add(n);names.push(n)}}while(names.length<4)names.push('TBD');grid.innerHTML=names.slice(0,4).map((n,i)=>`<div class="podium-place ${['first','second','third','fourth'][i]}"><div class="rank">${[1,2,3,4][i]}</div><div class="podium-team">${n}</div></div>`).join('');panel.style.display='block'}
+function render()'''
+          p.write_text(s[:old.start()] + new + s[old.end():])
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Fix podium placement' || exit 0
+          git push
