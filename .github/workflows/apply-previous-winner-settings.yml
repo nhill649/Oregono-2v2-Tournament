@@ -1,0 +1,54 @@
+name: Apply previous winner settings
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update viewer and admin
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Viewer: rounded previous-winner box and live value from Firestore.
+          p = Path('index.html')
+          s = p.read_text()
+          s = s.replace('.previous-winner{position:absolute;top:28px;right:28px;width:420px;box-sizing:border-box;border:2px solid #293a4a;border-radius:4px;', '.previous-winner{position:absolute;top:28px;right:28px;width:420px;box-sizing:border-box;border:2px solid #293a4a;border-radius:14px;')
+          s = s.replace('<div class="previous-winner-name">Roman &amp; Preston</div>', '<div class="previous-winner-name" id="previousWinnerName">Roman &amp; Preston</div>')
+          s = s.replace("const db=getFirestore(initializeApp(cfg)),ref=doc(db,'tournaments','oregano-2v2'),teams=['Memphis & Sam','Preston & Roman','Eli & Sanath','Nolan & Xavier'];let state={};", "const db=getFirestore(initializeApp(cfg)),ref=doc(db,'tournaments','oregano-2v2'),teams=['Memphis & Sam','Preston & Roman','Eli & Sanath','Nolan & Xavier'];let state={previousWinner:'Roman & Preston'};")
+          s = s.replace("function render(){if(!state.pool?.length){", "function render(){const pw=document.querySelector('#previousWinnerName');if(pw)pw.textContent=state.previousWinner||'Roman & Preston';if(!state.pool?.length){")
+          p.write_text(s)
+
+          # Admin: add a control that persists the previous winner in Firestore.
+          p = Path('admin.html')
+          s = p.read_text()
+          css = '.previous-winner-control{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.previous-winner-control input{flex:1;min-width:260px}.save-status{color:#55d6c2;font-size:13px;margin-top:8px}'
+          s = s.replace('</style>', css + '</style>', 1)
+          s = s.replace("let state={pool:[],poolComplete:false,bracket:null,seeds:null,bracketHidden:false,podiumHidden:true};", "let state={pool:[],poolComplete:false,bracket:null,seeds:null,bracketHidden:false,podiumHidden:true,previousWinner:'Roman & Preston'};")
+          s = s.replace("bracketHidden:false,podiumHidden:true}}async function save()", "bracketHidden:false,podiumHidden:true,previousWinner:state.previousWinner||'Roman & Preston'}}async function save()")
+          marker = '<section><h2>Pool Play</h2><div id="pool" class="grid"></div></section>'
+          control = '<section><h2>Previous Winner</h2><p class="small">This name appears in the Previous Winner box on the public viewer.</p><div class="previous-winner-control"><input id="previousWinnerInput" value="" placeholder="Enter previous winning team"><button id="savePreviousWinner">Save Previous Winner</button></div><div id="previousWinnerStatus" class="save-status"></div></section>'
+          if 'id="previousWinnerInput"' not in s:
+              s = s.replace(marker, control + marker, 1)
+          old_reset = "state={pool:[],poolComplete:false,bracket:null,seeds:null,bracketHidden:true,podiumHidden:true};"
+          new_reset = "state={pool:[],poolComplete:false,bracket:null,seeds:null,bracketHidden:true,podiumHidden:true,previousWinner:state.previousWinner||'Roman & Preston'};"
+          s = s.replace(old_reset, new_reset)
+          bind_marker = "document.querySelector('#draw').onclick=async()=>{state=draw();await save();render()};"
+          bind_code = "document.querySelector('#previousWinnerInput').value=state.previousWinner||'Roman & Preston';document.querySelector('#savePreviousWinner').onclick=async()=>{const v=document.querySelector('#previousWinnerInput').value.trim();if(!v){document.querySelector('#previousWinnerStatus').textContent='Enter a team name first.';return}state.previousWinner=v;await save();document.querySelector('#previousWinnerStatus').textContent='Previous winner saved ✓';};" + bind_marker
+          s = s.replace(bind_marker, bind_code, 1)
+          p.write_text(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html admin.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Add editable previous winner and round box styling"
+          git push
