@@ -8,10 +8,10 @@ export const firebaseConfig = {
 };
 
 // Live-page-only layout adjustment: place Tournament History beside the live-format description.
-if (typeof window !== 'undefined' && (window.location.pathname === '/' || window.location.pathname.endsWith('/index.html'))) {
+if (typeof window !== 'undefined' && (window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/Oregono-2v2-Tournament/') || window.location.pathname.endsWith('/Oregono-2v2-Tournament'))) {
   const style = document.createElement('style');
   style.textContent = `
-    .site-header > p + .previous-winner + .history-link { position:absolute; left:350px; top:58px; margin-top:0; white-space:nowrap; }
+    .site-header > p + .previous-winner + .history-link { position:absolute; left:350px; top:82px; margin-top:0; white-space:nowrap; }
     @media(max-width:800px){
       .site-header > p + .previous-winner + .history-link { position:static; display:inline-block; margin-top:8px; }
     }
