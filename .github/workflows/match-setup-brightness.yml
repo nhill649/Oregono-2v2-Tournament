@@ -1,0 +1,33 @@
+name: Match setup box brightness
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'Match setup box brightness') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update setup box brightness
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          old = '.teal-accent{position:relative;overflow:visible}'
+          new = '.teal-accent{position:relative;overflow:visible;background:#111c27 !important}'
+          if old not in s:
+              raise SystemExit('target CSS not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Match setup box brightness'
+          git push
