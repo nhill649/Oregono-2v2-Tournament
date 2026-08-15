@@ -5,5 +5,9 @@ service cloud.firestore {
       // Public tournament: anyone with the link can view and update the live tournament.
       allow read, write: if true;
     }
+    match /tournamentHistory/{historyId} {
+      // Archived tournament snapshots are public on the history page.
+      allow read, write: if true;
+    }
   }
 }
