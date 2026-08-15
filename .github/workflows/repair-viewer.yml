@@ -1,0 +1,34 @@
+name: Repair viewer
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/repair-viewer.yml"]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch viewer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old="const cfg={apiKey:'AIzaSyBEuP98gu80mX1J2xKSGqYsVYG8uEk-I',authDomain:'oregano-2v2-tournament.firebaseapp.com',projectId:'oregano-2v2-tournament',storageBucket:'oregano-2v2-tournament.firebasestorage.app',messagingSenderId:'921367151742',appId:'1:921367151742:web:d658598249ee300feb042f'};\nconst db=getFirestore(initializeApp(cfg)),ref=doc(db,'tournaments','oregano-2v2'),teams="
+          new="const db=getFirestore(initializeApp(firebaseConfig)),ref=doc(db,'tournaments','oregano-2v2'),teams="
+          if old in s:
+              s=s.replace("import{getFirestore,doc,onSnapshot}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';", "import{getFirestore,doc,onSnapshot}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';\nimport{firebaseConfig}from'./firebase-config.js';")
+              s=s.replace(old,new)
+          s=s.replace("let matches=p.filter(x=>x.round===r);", "let matches=p.filter(x=>Number(x.round)===r);")
+          s=s.replace("if(!matches.length&&p.length===4)matches=p.slice((r-1)*2,r*2);", "if(!matches.length&&p.length>=4)matches=p.slice((r-1)*2,r*2);")
+          s=s.replace("function render(){document.querySelector('#previousWinnerName').textContent=state.previousWinner||'Roman & Preston';renderPool();renderStandings();draw();renderPodium()}\nonSnapshot(ref,s=>{if(s.exists()){state={...state,...s.data()};render()}});", "function render(){document.querySelector('#previousWinnerName').textContent=state.previousWinner||'Roman & Preston';renderPool();renderStandings();draw();renderPodium()}\nconst setup=document.querySelector('#setup');\nonSnapshot(ref,s=>{if(s.exists()){state={...state,...s.data()};setup.textContent='Live tournament connected ✓';render()}else{setup.textContent='Live tournament connected ✓';render()}},e=>{console.error(e);setup.textContent='Unable to connect to live tournament';});")
+          p.write_text(s)
+          PY
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          if git diff --quiet; then exit 0; fi
+          git add index.html
+          git commit -m "Fix viewer Firebase connection and pool rendering"
+          git push
