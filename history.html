@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Oregano 2v2 Tournament History</title>
 <style>
-body{font:16px system-ui;margin:0;background:radial-gradient(circle at 50% -20%,#17232e 0,#0b1118 35%,#080c11 72%);color:#f4f6f9}.wrap{max-width:1100px;margin:auto;padding:28px}.site-header{position:relative}.accent{color:#55d6c2;font-size:13px;font-weight:800;letter-spacing:.08em}h1{font-size:38px;margin:22px 0 0}.current-link{display:inline-block;margin-top:22px;padding:11px 18px;border-radius:9px;background:#55d6c2;color:#07111b;text-decoration:none;font-weight:900;cursor:pointer}.current-link:hover{background:#6be2d0}@media(max-width:700px){.wrap{padding:18px}h1{font-size:30px}}
+body{font:16px system-ui;margin:0;background:radial-gradient(circle at 50% -20%,#17232e 0,#0b1118 35%,#080c11 72%);color:#f4f6f9}.wrap{max-width:1100px;margin:auto;padding:28px}.site-header{position:relative}.accent{color:#55d6c2;font-size:13px;font-weight:800;letter-spacing:.08em}h1{font-size:38px;margin:22px 0 0}.current-link{display:inline-block;margin-top:22px;padding:11px 18px;border-radius:9px;background:#55d6c2;color:#07111b;text-decoration:none;font-weight:900;cursor:pointer}.current-link:hover{background:#6be2d0}.history-list{margin-top:24px}.history-card{background:linear-gradient(145deg,#121d28,#0d151e);border:1px solid #293a4a;border-radius:15px;padding:18px;margin:16px 0}.history-card h2{margin:0 0 6px}.history-card .date{color:#91a7c0;font-size:13px}.history-card .winner{color:#55d6c2;font-weight:900;font-size:20px;margin-top:12px}.history-card .small{color:#91a7c0;font-size:12px;margin-top:8px}@media(max-width:700px){.wrap{padding:18px}h1{font-size:30px}}
 </style>
 </head>
 <body>
@@ -15,6 +15,17 @@ body{font:16px system-ui;margin:0;background:radial-gradient(circle at 50% -20%,
 <h1>Oregano 2v2 Tournament History</h1>
 <a class="current-link" href="https://nhill649.github.io/Oregono-2v2-Tournament/">Current Tournament</a>
 </header>
+<div id="historyList" class="history-list"></div>
 </div>
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js';
+import{getFirestore,collection,onSnapshot}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';
+import{firebaseConfig}from'./firebase-config.js';
+const db=getFirestore(initializeApp(firebaseConfig));
+const list=document.querySelector('#historyList');
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const winnerOf=t=>{const b=t?.bracket||{};for(const k of ['fp2','fp1']){const m=b[k];if(m&&m.scoreA!=null&&m.scoreB!=null&&m.a&&m.b){return Number(m.scoreA)>Number(m.scoreB)?m.a:m.b}}return null};
+onSnapshot(collection(db,'tournamentHistory'),snap=>{const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));if(!items.length){list.innerHTML='';return}list.innerHTML=items.map((x,i)=>{const w=winnerOf(x);const date=x.savedAt?new Date(x.savedAt).toLocaleString():'';const label=x.title||`Tournament ${items.length-i}`;return`<article class="history-card"><h2>${esc(label)}</h2><div class="date">Saved ${esc(date)}</div>${w?`<div class="winner">Winner: ${esc(w)}</div>`:''}<div class="small">Archived tournament snapshot</div></article>`}).join('')});
+</script>
 </body>
 </html>
