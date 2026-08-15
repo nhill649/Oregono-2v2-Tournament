@@ -1,0 +1,45 @@
+name: Fix tournament history storage
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/fix-history.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch history storage
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('admin.html')
+          s=p.read_text()
+          s=s.replace("import{getFirestore,doc,setDoc,onSnapshot}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';", "import{getFirestore,doc,setDoc,onSnapshot,arrayUnion}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';")
+          old="async function saveHistory(){const b=state.bracket||{};const finalMatch=isFinal(b.fp2)?b.fp2:isFinal(b.fp1)?b.fp1:null;if(!state.poolComplete||!finalMatch){alert('Finish the tournament before saving it to History.');return}const champion=winner(finalMatch)||'Completed Tournament';if(!confirm('Save this current tournament to the History page?'))return;const id=String(Date.now());await setDoc(doc(db,'tournamentHistory',id),{...state,title:`Oregano 2v2 Tournament — ${champion}`,savedAt:new Date().toISOString()});alert('Current tournament saved to History ✓')}"
+          new="async function saveHistory(){const b=state.bracket||{};const finalMatch=isFinal(b.fp2)?b.fp2:isFinal(b.fp1)?b.fp1:null;if(!state.poolComplete||!finalMatch){alert('Finish the tournament before saving it to History.');return}const champion=winner(finalMatch)||'Completed Tournament';if(!confirm('Save this current tournament to the History page?'))return;const snapshot={...state};const id=String(Date.now());try{await setDoc(ref,{history:arrayUnion({id,title:`Oregano 2v2 Tournament — ${champion}`,savedAt:new Date().toISOString(),state:snapshot})},{merge:true});alert('Current tournament saved to History ✓')}catch(e){console.error(e);alert('Could not save the tournament to History. '+(e?.message||e))}}"
+          if old not in s:
+              raise SystemExit('Expected saveHistory function not found in admin.html')
+          s=s.replace(old,new)
+          p.write_text(s)
+
+          p=Path('history.html')
+          s=p.read_text()
+          s=s.replace("import{getFirestore,collection,onSnapshot}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';", "import{getFirestore,doc,onSnapshot}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';")
+          old="onSnapshot(collection(db,'tournamentHistory'),snap=>{let items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));renderList(items);if(location.hash){let found=items.find(x=>x.id===location.hash.slice(1));if(found)showSnapshot(found)}});"
+          new="onSnapshot(doc(db,'tournaments','oregano-2v2'),snap=>{const data=snap.data()||{};let items=(data.history||[]).map(x=>({id:x.id,title:x.title,savedAt:x.savedAt,...(x.state||{})})).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));renderList(items);if(location.hash){let found=items.find(x=>x.id===location.hash.slice(1));if(found)showSnapshot(found)}},e=>{console.error(e);document.querySelector('#historyList').textContent='Unable to load tournament history. Please refresh the page.'});"
+          if old not in s:
+              raise SystemExit('Expected history listener not found in history.html')
+          s=s.replace(old,new)
+          p.write_text(s)
+          PY
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add admin.html history.html
+          git commit -m "Fix tournament history persistence" || exit 0
+          git push
