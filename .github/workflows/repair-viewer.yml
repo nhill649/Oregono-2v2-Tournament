@@ -14,25 +14,18 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           h=Path('history.html')
           s=h.read_text()
-          s=s.replace("['lb1',b.lb1,40,520,'Losers Round 1']", "['lb1',b.lb1,400,520,'Losers Round 1']")
-          s=s.replace("['lb2',b.lb2,400,520,'Losers Round 2']", "['lb2',b.lb2,760,520,'Losers Round 2']")
-          s=s.replace("['fp1',b.fp1,760,360,'Grand Final']", "['fp1',b.fp1,760,360,'Grand Final']")
-          s=s.replace("['fp2',b.fp2,1120,360,'Reset Final']", "['fp2',b.fp2,1120,360,'Reset Final']")
-          s=s.replace('viewBox=\\"0 0 1460 850\\"','viewBox=\\"0 0 1460 760\\"')
-          start=s.index('function bracketSVG')
-          end=s.index('function podium',start)
-          fn=s[start:end]
-          fn=re.sub(r"const line=.*?for\\(const \\[id,m,x,y,label\\] of cells\\)\\{", "const line=d=>o.push(`<path d=\\\"${d}\\\" fill=\\\"none\\\" stroke=\\\"#293a4a\\\" stroke-width=\\\"3\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"/>`);line('M340 160H370V260H400');line('M340 360H390V580H400');line('M340 220H370V580H400');line('M340 420H390V580H400');line('M700 260H730V420H760');line('M700 260H730V580H760');line('M700 580H760');line('M1060 580H1090V420H1060');line('M1060 420H1120');for(const [id,m,x,y,label] of cells){", fn, count=1, flags=re.S)
-          fn=re.sub(r"if\\(id!=='fp2'\\)o\\.push\\(`<path d=.*?/>`\\)", '', fn)
-          s=s[:start]+fn+s[end:]
+          old="const line=d=>o.push(`<path d=\\\"${d}\\\" fill=\\\"none\\\" stroke=\\\"#293a4a\\\" stroke-width=\\\"3\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"/>`);line('M340 160H370V260H400');line('M340 360H370V260H400');line('M340 220H350V580H40');line('M340 420H350V580H40');line('M700 260H730V580H700');line('M340 580H400');line('M700 260H730V420H760');line('M700 580H730V420H760');line('M1060 420H1120');"
+          new="const line=d=>o.push(`<path d=\\\"${d}\\\" fill=\\\"none\\\" stroke=\\\"#293a4a\\\" stroke-width=\\\"3\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"/>`);line('M340 160H370V260H400');line('M340 360H390V580H400');line('M340 220H370V580H400');line('M340 420H390V580H400');line('M700 260H730V420H760');line('M700 260H730V580H760');line('M700 580H760');line('M1060 580H1090V420H1060');line('M1060 420H1120');"
+          s=s.replace(old,new)
+          s=s.replace("if(id!=='fp2')o.push(`<path d=\\\"M${x+300} ${y+60}H${x+340}\\\" stroke=\\\"#293a4a\\\" stroke-width=\\\"2\\\"/>`)", '')
+          s=s.replace('viewBox=\\\"0 0 1460 850\\\"','viewBox=\\\"0 0 1460 760\\\"')
           h.write_text(s)
           PY
           git config user.name github-actions
           git config user.email github-actions@github.com
           if git diff --quiet; then exit 0; fi
           git add history.html
-          git commit -m "Align history bracket lines"
+          git commit -m "Fix history bracket connector paths"
           git push
