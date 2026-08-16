@@ -10,42 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch viewer and history bracket
+      - name: Align history bracket
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          # Keep the existing live-viewer repair.
-          p=Path('index.html')
-          s=p.read_text()
-          old="const cfg={apiKey:'AIzaSyBEuP98gu80mX1J2xKSGqYsVYG8uEk-I',authDomain:'oregano-2v2-tournament.firebaseapp.com',projectId:'oregano-2v2-tournament',storageBucket:'oregano-2v2-tournament.firebasestorage.app',messagingSenderId:'921367151742',appId:'1:921367151742:web:d658598249ee300feb042f'};\nconst db=getFirestore(initializeApp(cfg)),ref=doc(db,'tournaments','oregano-2v2'),teams="
-          new="const db=getFirestore(initializeApp(firebaseConfig)),ref=doc(db,'tournaments','oregano-2v2'),teams="
-          if old in s:
-              s=s.replace("import{getFirestore,doc,onSnapshot}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';", "import{getFirestore,doc,onSnapshot}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';\nimport{firebaseConfig}from'./firebase-config.js';")
-              s=s.replace(old,new)
-          s=s.replace("let matches=p.filter(x=>x.round===r);", "let matches=p.filter(x=>Number(x.round)===r);")
-          s=s.replace("if(!matches.length&&p.length===4)matches=p.slice((r-1)*2,r*2);", "if(!matches.length&&p.length>=4)matches=p.slice((r-1)*2,r*2);")
-          s=s.replace("function render(){document.querySelector('#previousWinnerName').textContent=state.previousWinner||'Roman & Preston';renderPool();renderStandings();draw();renderPodium()}\nonSnapshot(ref,s=>{if(s.exists()){state={...state,...s.data()};render()}});", "function render(){document.querySelector('#previousWinnerName').textContent=state.previousWinner||'Roman & Preston';renderPool();renderStandings();draw();renderPodium()}\nconst setup=document.querySelector('#setup');\nonSnapshot(ref,s=>{if(s.exists()){state={...state,...s.data()};setup.textContent='Live tournament connected ✓';render()}else{setup.textContent='Live tournament connected ✓';render()}},e=>{console.error(e);setup.textContent='Unable to connect to live tournament';});")
-          p.write_text(s)
-
-          # Align the saved-history bracket connectors.
+          import re
           h=Path('history.html')
-          hs=h.read_text()
-          hs=hs.replace("['lb1',b.lb1,40,600,'Losers Round 1']", "['lb1',b.lb1,40,520,'Losers Round 1']")
-          hs=hs.replace("['lb2',b.lb2,400,600,'Losers Round 2']", "['lb2',b.lb2,400,520,'Losers Round 2']")
-          hs=hs.replace("['fp1',b.fp1,760,400,'Grand Final']", "['fp1',b.fp1,760,360,'Grand Final']")
-          hs=hs.replace("['fp2',b.fp2,1120,400,'Reset Final']", "['fp2',b.fp2,1120,360,'Reset Final']")
-          hs=hs.replace('viewBox=\\"0 0 1460 850\\"', 'viewBox=\\"0 0 1460 760\\"')
-          old_short="if(id!=='fp2')o.push(`<path d=\\\"M${x+300} ${y+60}H${x+340}\\\" stroke=\\\"#293a4a\\\" stroke-width=\\\"2\\\"/>`)"
-          hs=hs.replace(old_short, '')
-          needle="for(const [id,m,x,y,label] of cells){"
-          connectors="const line=d=>o.push(`<path d=\\\"${d}\\\" fill=\\\"none\\\" stroke=\\\"#293a4a\\\" stroke-width=\\\"3\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"/>`);line('M340 160H370V260H400');line('M340 360H370V260H400');line('M340 220H350V580H40');line('M340 420H350V580H40');line('M700 260H730V580H700');line('M340 580H400');line('M700 260H730V420H760');line('M700 580H730V420H760');line('M1060 420H1120');\nfor(const [id,m,x,y,label] of cells){"
-          hs=hs.replace(needle, connectors, 1)
-          h.write_text(hs)
+          s=h.read_text()
+          s=s.replace("['lb1',b.lb1,40,520,'Losers Round 1']", "['lb1',b.lb1,400,520,'Losers Round 1']")
+          s=s.replace("['lb2',b.lb2,400,520,'Losers Round 2']", "['lb2',b.lb2,760,520,'Losers Round 2']")
+          s=s.replace("['fp1',b.fp1,760,360,'Grand Final']", "['fp1',b.fp1,760,360,'Grand Final']")
+          s=s.replace("['fp2',b.fp2,1120,360,'Reset Final']", "['fp2',b.fp2,1120,360,'Reset Final']")
+          s=s.replace('viewBox=\\"0 0 1460 850\\"','viewBox=\\"0 0 1460 760\\"')
+          start=s.index('function bracketSVG')
+          end=s.index('function podium',start)
+          fn=s[start:end]
+          fn=re.sub(r"const line=.*?for\\(const \\[id,m,x,y,label\\] of cells\\)\\{", "const line=d=>o.push(`<path d=\\\"${d}\\\" fill=\\\"none\\\" stroke=\\\"#293a4a\\\" stroke-width=\\\"3\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"/>`);line('M340 160H370V260H400');line('M340 360H390V580H400');line('M340 220H370V580H400');line('M340 420H390V580H400');line('M700 260H730V420H760');line('M700 260H730V580H760');line('M700 580H760');line('M1060 580H1090V420H1060');line('M1060 420H1120');for(const [id,m,x,y,label] of cells){", fn, count=1, flags=re.S)
+          fn=re.sub(r"if\\(id!=='fp2'\\)o\\.push\\(`<path d=.*?/>`\\)", '', fn)
+          s=s[:start]+fn+s[end:]
+          h.write_text(s)
           PY
           git config user.name github-actions
           git config user.email github-actions@github.com
           if git diff --quiet; then exit 0; fi
-          git add index.html history.html
-          git commit -m "Align history bracket connectors"
+          git add history.html
+          git commit -m "Align history bracket lines"
           git push
