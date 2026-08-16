@@ -14,7 +14,6 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
 
           # Keep the existing live-viewer repair.
           p=Path('index.html')
@@ -29,18 +28,19 @@ jobs:
           s=s.replace("function render(){document.querySelector('#previousWinnerName').textContent=state.previousWinner||'Roman & Preston';renderPool();renderStandings();draw();renderPodium()}\nonSnapshot(ref,s=>{if(s.exists()){state={...state,...s.data()};render()}});", "function render(){document.querySelector('#previousWinnerName').textContent=state.previousWinner||'Roman & Preston';renderPool();renderStandings();draw();renderPodium()}\nconst setup=document.querySelector('#setup');\nonSnapshot(ref,s=>{if(s.exists()){state={...state,...s.data()};setup.textContent='Live tournament connected ✓';render()}else{setup.textContent='Live tournament connected ✓';render()}},e=>{console.error(e);setup.textContent='Unable to connect to live tournament';});")
           p.write_text(s)
 
-          # Align every history bracket connector cleanly between match boxes.
+          # Align the saved-history bracket connectors.
           h=Path('history.html')
           hs=h.read_text()
-          new_bracket=r'''function bracketSVG(s){const b=bracket(s);const cells=[['wb1',b.wb1,40,100,'Winners Semi-Final 1'],['wb2',b.wb2,40,300,'Winners Semi-Final 2'],['lb1',b.lb1,40,520,'Losers Round 1'],['wbf',b.wbf,400,200,'Winners Final'],['lb2',b.lb2,400,520,'Losers Round 2'],['fp1',b.fp1,760,360,'Grand Final'],['fp2',b.fp2,1120,360,'Reset Final']];let o=[`<svg class="bracket-svg" viewBox="0 0 1460 760" xmlns="http://www.w3.org/2000/svg"><rect width="1460" height="760" fill="#080c11"/><text x="190" y="45" fill="#fff" font-size="20" font-weight="700" text-anchor="middle">ROUND 1</text><text x="550" y="45" fill="#fff" font-size="20" font-weight="700" text-anchor="middle">ROUND 2</text><text x="910" y="45" fill="#fff" font-size="20" font-weight="700" text-anchor="middle">ROUND 3</text><text x="1270" y="45" fill="#fff" font-size="20" font-weight="700" text-anchor="middle">IF NECESSARY</text>`];
-const line=d=>o.push(`<path d="${d}" fill="none" stroke="#293a4a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`);
-line('M340 160H370V260H400');line('M340 360H370V260H400');
-line('M340 220H350V580H40');line('M340 420H350V580H40');
-line('M700 260H730V580H700');line('M340 580H400');
-line('M700 260H730V420H760');line('M700 580H730V420H760');
-line('M1060 420H1120');
-for(const [id,m,x,y,label] of cells){const wa=winner(m)===m.a,wb=winner(m)===m.b;o.push(`<text x="${x}" y="${y-12}" fill="#91a7c0" font-size="12">${label}</text><rect x="${x}" y="${y}" width="300" height="120" rx="8" fill="#101a24" stroke="#293a4a"/><path d="M${x} ${y+60}h300" stroke="#293a4a"/><text x="${x+14}" y="${y+36}" fill="${wa?'#55d6c2':'#fff'}" font-size="16" font-weight="${wa?900:400}">${team(s,m.a)}</text><text x="${x+286}" y="${y+36}" fill="${wa?'#55d6c2':'#fff'}" font-size="16" text-anchor="end">${m.scoreA??'TBD'}</text><text x="${x+14}" y="${y+96}" fill="${wb?'#55d6c2':'#fff'}" font-size="16" font-weight="${wb?900:400}">${team(s,m.b)}</text><text x="${x+286}" y="${y+96}" fill="${wb?'#55d6c2':'#fff'}" font-size="16" text-anchor="end">${m.scoreB??'TBD'}</text>`)}return o.join('')+'</svg>'}'''
-          hs=re.sub(r'function bracketSVG\(s\)\{.*?\}\nfunction podium', new_bracket+'\nfunction podium', hs, count=1, flags=re.S)
+          hs=hs.replace("['lb1',b.lb1,40,600,'Losers Round 1']", "['lb1',b.lb1,40,520,'Losers Round 1']")
+          hs=hs.replace("['lb2',b.lb2,400,600,'Losers Round 2']", "['lb2',b.lb2,400,520,'Losers Round 2']")
+          hs=hs.replace("['fp1',b.fp1,760,400,'Grand Final']", "['fp1',b.fp1,760,360,'Grand Final']")
+          hs=hs.replace("['fp2',b.fp2,1120,400,'Reset Final']", "['fp2',b.fp2,1120,360,'Reset Final']")
+          hs=hs.replace('viewBox=\\"0 0 1460 850\\"', 'viewBox=\\"0 0 1460 760\\"')
+          old_short="if(id!=='fp2')o.push(`<path d=\\\"M${x+300} ${y+60}H${x+340}\\\" stroke=\\\"#293a4a\\\" stroke-width=\\\"2\\\"/>`)"
+          hs=hs.replace(old_short, '')
+          needle="for(const [id,m,x,y,label] of cells){"
+          connectors="const line=d=>o.push(`<path d=\\\"${d}\\\" fill=\\\"none\\\" stroke=\\\"#293a4a\\\" stroke-width=\\\"3\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"/>`);line('M340 160H370V260H400');line('M340 360H370V260H400');line('M340 220H350V580H40');line('M340 420H350V580H40');line('M700 260H730V580H700');line('M340 580H400');line('M700 260H730V420H760');line('M700 580H730V420H760');line('M1060 420H1120');\nfor(const [id,m,x,y,label] of cells){"
+          hs=hs.replace(needle, connectors, 1)
           h.write_text(hs)
           PY
           git config user.name github-actions
