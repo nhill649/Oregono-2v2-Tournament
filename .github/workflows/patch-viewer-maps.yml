@@ -1,0 +1,37 @@
+name: Patch viewer pending maps
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.event.head_commit.message != 'chore: apply pending bracket map viewer patch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch viewer
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old="let reset=isF(b.fp1)&&win(b.fp1)===b.fp1.b;b.fp2=reset?same(b.fp2,b.fp1.a,b.fp1.b):m();return b}"
+          new="let reset=isF(b.fp1)&&win(b.fp1)===b.fp1.b;b.fp2=reset?same(b.fp2,b.fp1.a,b.fp1.b):m();const keys=['wb1','wb2','wbf','lb1','lb2','fp1','fp2'];(state.pendingBracketMaps||[]).forEach((map,i)=>{if(map&&b[keys[i]])b[keys[i]].map=map});return b}"
+          if old not in s:
+              raise SystemExit('target text not found')
+          p.write_text(s.replace(old,new,1))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'chore: apply pending bracket map viewer patch'
+          git push
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          git rm -f .github/workflows/patch-viewer-maps.yml || true
+          git diff --cached --quiet || git commit -m 'chore: remove temporary viewer patch workflow'
+          git push || true
