@@ -183,12 +183,17 @@
           return match;
         });
 
-        return {
+        // Build the complete new tournament state first, then assign maps to
+        // both pool play and all seven bracket matches before it is saved.
+        const nextState = {
           pool, poolComplete: false, bracket: null, seeds: null,
           bracketHidden: false, podiumHidden: true,
           previousWinner: state.previousWinner || DEFAULT_CHAMPION,
           teamNames: [...teams], mapPool: [...state.mapPool], pendingBracketMaps: []
         };
+        state = nextState;
+        randomizeMaps();
+        return state;
       }
 
       /* ================================================================
@@ -413,10 +418,9 @@
 
         document.querySelector("#saveHistory").onclick = saveHistory;
 
-        // IMPORTANT: Randomizing pool matches also randomizes all maps.
+        // Randomizing pool matches creates and saves all map assignments immediately.
         document.querySelector("#draw").onclick = async () => {
-          state = draw();
-          randomizeMaps();
+          draw();
           await save();
           render();
         };
