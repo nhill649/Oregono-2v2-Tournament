@@ -25,50 +25,82 @@ jobs:
       - name: Validate site structure and JavaScript syntax
         run: node scripts/validate-site.mjs
 
-      - name: Apply surgical map display fix
+      - name: Enforce real map names everywhere
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
-          def patch_page(filename):
-              p = Path(filename)
+          def replace_once(path, old, new):
+              p = Path(path)
               s = p.read_text()
+              if old in s and new not in s:
+                  s = s.replace(old, new, 1)
+                  p.write_text(s)
+                  return True
+              return False
 
-              # Never leave the placeholder text in the source.
-              s = s.replace('Random Map', '')
-              s = s.replace('random map', '')
+          # Viewer: reject placeholder values and always resolve to a real
+          # configured map name when one exists. If no map exists yet, blank.
+          index = Path('index.html')
+          s = index.read_text()
+          old_get = "function getMatchMap(match,index){const pending=Array.isArray(state.pendingBracketMaps)?state.pendingBracketMaps:[];const pool=Array.isArray(state.mapPool)?state.mapPool.filter(Boolean):[];return match?.map||pending[index]||match?.randomMap||(pool.length?pool[index%pool.length]:'Map TBD')}"
+          new_get = "function getMatchMap(match,index){const pending=Array.isArray(state.pendingBracketMaps)?state.pendingBracketMaps:[];const pool=Array.isArray(state.mapPool)?state.mapPool.filter(Boolean):[];const clean=v=>{const x=String(v??'').trim();return x&&x.toLowerCase()!=='random map'&&x.toLowerCase()!=='map tbd'?x:''};return clean(match?.map)||clean(pending[index])||clean(match?.randomMap)||(pool.length?clean(pool[index%pool.length]):'')}"
+          if old_get in s:
+              s = s.replace(old_get, new_get, 1)
 
-              if filename == 'index.html':
-                  # Prefer a real saved/pending/configured map and reject any
-                  # stale placeholder value that may already exist in Firebase.
-                  old = re.search(r'function getMatchMap\(match,index\)\{.*?\}', s)
-                  new = "function getMatchMap(match,index){const pending=Array.isArray(state.pendingBracketMaps)?state.pendingBracketMaps:[];const pool=Array.isArray(state.mapPool)?state.mapPool.filter(Boolean):[];const clean=v=>{const x=String(v||'').trim();return x&&x.toLowerCase()!=='random map'?x:null};return clean(match?.map)||clean(pending[index])||clean(match?.randomMap)||(pool.length?pool[index%pool.length]:'')}"
-                  if old:
-                      s = s[:old.start()] + new + s[old.end():]
+          # Pool cards must use the same rule and can never render the literal
+          # placeholder "Random Map".
+          old_pool = "${g.map||g.randomMap||'Random Map'}"
+          new_pool = "${getPoolMap(g,(r-1)*2+i)}"
+          if old_pool in s:
+              s = s.replace(old_pool, new_pool, 1)
 
-              # Final display guard: if old tournament data contains the stale
-              # placeholder, remove it from rendered text without changing any
-              # scores, teams, bracket state, or Firebase data.
-              guard = "<script>const __removeRandomMapPlaceholder=()=>{const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const n=[];while(w.nextNode())n.push(w.currentNode);for(const x of n){if(x.nodeValue&&/random map/i.test(x.nodeValue))x.nodeValue=x.nodeValue.replace(/random map/gi,'')}};new MutationObserver(__removeRandomMapPlaceholder).observe(document.body,{subtree:true,childList:true,characterData:true});__removeRandomMapPlaceholder();</script>"
-              if '__removeRandomMapPlaceholder' not in s:
-                  s = s.replace('</body>', guard + '</body>')
+          marker = "function badge(m,t){"
+          helper = "function getPoolMap(match,index){const pool=Array.isArray(state.mapPool)?state.mapPool.filter(Boolean):[];const clean=v=>{const x=String(v??'').trim();return x&&x.toLowerCase()!=='random map'&&x.toLowerCase()!=='map tbd'?x:''};return clean(match?.map)||clean(match?.randomMap)||(pool.length?clean(pool[index%pool.length]):'')}"
+          if helper not in s and marker in s:
+              s = s.replace(marker, helper + marker, 1)
+          index.write_text(s)
 
-              p.write_text(s)
+          # Admin: if a state is loaded with stale placeholder maps, normalize
+          # the existing assignments to the configured map pool. Randomizing
+          # again still changes maps without changing matchups.
+          admin = Path('admin.html')
+          a = admin.read_text()
+          old_sync = "if (!Array.isArray(state.pendingBracketMaps)) state.pendingBracketMaps = [];"
+          new_sync = "if (!Array.isArray(state.pendingBracketMaps)) state.pendingBracketMaps = []; state.mapPool = state.mapPool.map(x => String(x || '').trim()).filter(x => x && x.toLowerCase() !== 'random map');"
+          if old_sync in a and new_sync not in a:
+              a = a.replace(old_sync, new_sync, 1)
+          admin.write_text(a)
 
-          patch_page('index.html')
-          patch_page('admin.html')
+          # Scan every tracked text/code file for the exact UI placeholder.
+          # It is allowed only inside this workflow's validation text; it must
+          # never remain in executable tournament UI code.
+          forbidden = []
+          for p in Path('.').rglob('*'):
+              if not p.is_file() or '.git' in p.parts or p.suffix.lower() not in {'.html','.js','.mjs','.css','.py','.yml','.yaml'}:
+                  continue
+              try:
+                  text = p.read_text()
+              except UnicodeDecodeError:
+                  continue
+              if '||\'Random Map\'' in text or '||"Random Map"' in text:
+                  forbidden.append(str(p))
+          if forbidden:
+              raise SystemExit('Random Map fallback remains in executable code: ' + ', '.join(forbidden))
+
+          if index.read_text() == s and admin.read_text() == a:
+              pass
           PY
 
           if git diff --quiet -- index.html admin.html; then
-            echo "No map display patch needed"
+            echo "Map enforcement already applied"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html admin.html
-          git commit -m "fix: never display random map placeholder [skip ci]"
+          git commit -m "fix: never render Random Map placeholder [skip ci]"
           git push
