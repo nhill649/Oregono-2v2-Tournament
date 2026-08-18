@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
-const files = ['index.html', 'admin.html', 'history.html', 'stream-control.html'];
+const files = ['index.html', 'admin.html', 'history.html'];
 const required = ['firebase-config.js', 'firestore.rules', 'storage.rules'];
 const errors = [];
 
