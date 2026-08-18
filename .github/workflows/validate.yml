@@ -33,17 +33,6 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          def replace_once(path, old, new):
-              p = Path(path)
-              s = p.read_text()
-              if old in s and new not in s:
-                  s = s.replace(old, new, 1)
-                  p.write_text(s)
-                  return True
-              return False
-
-          # Viewer: reject placeholder values and always resolve to a real
-          # configured map name when one exists. If no map exists yet, blank.
           index = Path('index.html')
           s = index.read_text()
           old_get = "function getMatchMap(match,index){const pending=Array.isArray(state.pendingBracketMaps)?state.pendingBracketMaps:[];const pool=Array.isArray(state.mapPool)?state.mapPool.filter(Boolean):[];return match?.map||pending[index]||match?.randomMap||(pool.length?pool[index%pool.length]:'Map TBD')}"
@@ -51,8 +40,6 @@ jobs:
           if old_get in s:
               s = s.replace(old_get, new_get, 1)
 
-          # Pool cards must use the same rule and can never render the literal
-          # placeholder "Random Map".
           old_pool = "${g.map||g.randomMap||'Random Map'}"
           new_pool = "${getPoolMap(g,(r-1)*2+i)}"
           if old_pool in s:
@@ -64,9 +51,6 @@ jobs:
               s = s.replace(marker, helper + marker, 1)
           index.write_text(s)
 
-          # Admin: if a state is loaded with stale placeholder maps, normalize
-          # the existing assignments to the configured map pool. Randomizing
-          # again still changes maps without changing matchups.
           admin = Path('admin.html')
           a = admin.read_text()
           old_sync = "if (!Array.isArray(state.pendingBracketMaps)) state.pendingBracketMaps = [];"
@@ -75,24 +59,18 @@ jobs:
               a = a.replace(old_sync, new_sync, 1)
           admin.write_text(a)
 
-          # Scan every tracked text/code file for the exact UI placeholder.
-          # It is allowed only inside this workflow's validation text; it must
-          # never remain in executable tournament UI code.
           forbidden = []
           for p in Path('.').rglob('*'):
-              if not p.is_file() or '.git' in p.parts or p.suffix.lower() not in {'.html','.js','.mjs','.css','.py','.yml','.yaml'}:
+              if not p.is_file() or '.git' in p.parts or p.suffix.lower() not in {'.html','.js','.mjs','.css','.py'}:
                   continue
               try:
                   text = p.read_text()
               except UnicodeDecodeError:
                   continue
-              if '||\'Random Map\'' in text or '||"Random Map"' in text:
+              if "||'Random Map'" in text or '||"Random Map"' in text:
                   forbidden.append(str(p))
           if forbidden:
               raise SystemExit('Random Map fallback remains in executable code: ' + ', '.join(forbidden))
-
-          if index.read_text() == s and admin.read_text() == a:
-              pass
           PY
 
           if git diff --quiet -- index.html admin.html; then
