@@ -1,35 +1,35 @@
 import fs from 'node:fs';
-import vm from 'node:vm';
+import { execFileSync } from 'node:child_process';
+import os from 'node:os';
+import path from 'node:path';
 
 const files = ['index.html', 'admin.html', 'history.html', 'stream-control.html'];
 const required = ['firebase-config.js', 'firestore.rules', 'storage.rules'];
 const errors = [];
 
-function read(path) {
-  if (!fs.existsSync(path)) {
-    errors.push(`Missing required file: ${path}`);
-    return '';
-  }
-  return fs.readFileSync(path, 'utf8');
+for (const file of [...files, ...required]) {
+  if (!fs.existsSync(file)) errors.push(`Missing required file: ${file}`);
 }
 
-for (const path of [...files, ...required]) read(path);
-
-for (const path of files) {
-  if (!fs.existsSync(path)) continue;
-  const html = fs.readFileSync(path, 'utf8');
+for (const file of files) {
+  if (!fs.existsSync(file)) continue;
+  const html = fs.readFileSync(file, 'utf8');
 
   if (html.includes('<<<<<<<') || html.includes('=======') || html.includes('>>>>>>>')) {
-    errors.push(`${path}: unresolved merge-conflict markers found`);
+    errors.push(`${file}: unresolved merge-conflict markers found`);
   }
 
   const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
   scripts.forEach((code, index) => {
+    const temp = path.join(os.tmpdir(), `oregono-${process.pid}-${index}.mjs`);
     try {
-      // Syntax-only validation. Browser globals/imports are intentionally not executed.
-      new vm.Script(code, { filename: `${path}#script-${index + 1}` });
+      fs.writeFileSync(temp, code, 'utf8');
+      execFileSync(process.execPath, ['--check', temp], { stdio: 'pipe' });
     } catch (error) {
-      errors.push(`${path}#script-${index + 1}: ${error.message}`);
+      const message = error?.stderr?.toString().trim() || error.message;
+      errors.push(`${file}#script-${index + 1}: ${message}`);
+    } finally {
+      try { fs.unlinkSync(temp); } catch {}
     }
   });
 
@@ -37,8 +37,8 @@ for (const path of files) {
   const closeHtml = (html.match(/<\/html>/gi) || []).length;
   const openBody = (html.match(/<body\b/gi) || []).length;
   const closeBody = (html.match(/<\/body>/gi) || []).length;
-  if (openHtml !== 1 || closeHtml !== 1) errors.push(`${path}: expected exactly one <html> and </html>`);
-  if (openBody !== 1 || closeBody !== 1) errors.push(`${path}: expected exactly one <body> and </body>`);
+  if (openHtml !== 1 || closeHtml !== 1) errors.push(`${file}: expected exactly one <html> and </html>`);
+  if (openBody !== 1 || closeBody !== 1) errors.push(`${file}: expected exactly one <body> and </body>`);
 }
 
 if (errors.length) {
