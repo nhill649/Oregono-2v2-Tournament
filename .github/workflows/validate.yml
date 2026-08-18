@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -24,3 +24,39 @@ jobs:
 
       - name: Validate site structure and JavaScript syntax
         run: node scripts/validate-site.mjs
+
+      - name: Apply surgical map fix
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text()
+          old = re.search(r'function getMatchMap\(match,index\)\{.*?\}', s)
+          new = "function getMatchMap(match,index){const pending=Array.isArray(state.pendingBracketMaps)?state.pendingBracketMaps:[];const pool=Array.isArray(state.mapPool)?state.mapPool.filter(Boolean):[];const clean=v=>{const x=String(v||'').trim();return x&&x.toLowerCase()!=='random map'?x:null};return clean(match?.map)||clean(pending[index])||clean(match?.randomMap)||(pool.length?pool[index%pool.length]:'Map TBD')}"
+          if old and old.group(0) != new:
+              s = s[:old.start()] + new + s[old.end():]
+          p.write_text(s)
+
+          p = Path('admin.html')
+          s = p.read_text()
+          old = "randomizeMaps();\n        return state;"
+          new = "randomizeMaps();\n        if (!Array.isArray(state.pendingBracketMaps) || state.pendingBracketMaps.length !== BRACKET_MATCH_KEYS.length) {\n          state.pendingBracketMaps = BRACKET_MATCH_KEYS.map((_, i) => state.mapPool[i % state.mapPool.length]);\n        }\n        return state;"
+          if old in s and new not in s:
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
+          if git diff --quiet -- index.html admin.html; then
+            echo "No map patch needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html admin.html
+          git commit -m "fix: persist and display real match maps [skip ci]"
+          git push
