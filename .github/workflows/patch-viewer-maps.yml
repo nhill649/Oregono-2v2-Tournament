@@ -10,94 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch admin and viewer
+      - name: Patch viewer bracket maps
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
-          admin = Path('admin.html')
-          s = admin.read_text()
-
-          old_save = 'await setDoc(ref, state);'
-          new_save = 'await setDoc(ref, state, { merge: true });'
-          if old_save in s:
-              s = s.replace(old_save, new_save, 1)
-
-          marker = 'pendingBracketMaps: [],\n        };'
-          injection = r'''
-        /* tournament safety patch */
-        (() => {
-          const install = () => {
-            document.addEventListener("click", async (ev) => {
-              const btn = ev.target.closest("button");
-              if (!btn) return;
-              const text = (btn.textContent || "").trim();
-
-              if (/reset\s+pool\s+play/i.test(text)) {
-                ev.preventDefault();
-                ev.stopImmediatePropagation();
-                if (!confirm("Reset ONLY Pool Play? Tournament History and the bracket will not be deleted.")) return;
-                state.pool = [];
-                state.poolComplete = false;
-                try {
-                  await save();
-                  location.reload();
-                } catch (e) {
-                  console.error(e);
-                  alert("Pool Play reset failed: " + (e?.message || e));
-                }
-                return;
-              }
-
-              if (btn.classList.contains("history-delete")) {
-                ev.preventDefault();
-                ev.stopImmediatePropagation();
-              }
-            }, true);
-
-            const addBottomHistoryDelete = () => {
-              if (document.getElementById("history-delete-bottom")) return;
-              const b = document.createElement("button");
-              b.id = "history-delete-bottom";
-              b.className = "danger";
-              b.textContent = "Delete Historical Tournament";
-              b.style.cssText = "display:block;margin:28px 0 8px;width:100%;background:#ff6b6b;color:#111;font-weight:900;";
-              b.onclick = async () => {
-                const history = Array.isArray(state.history) ? state.history : [];
-                if (!history.length) return alert("There are no historical tournaments to delete.");
-                const list = history.map((x, i) => `${i + 1}. ${x.title || "Saved Tournament"}`).join("\n");
-                const raw = prompt("Enter the number of the historical tournament to delete:\n\n" + list);
-                if (raw === null) return;
-                const i = Number(raw) - 1;
-                if (!Number.isInteger(i) || !history[i]) return alert("Invalid tournament number.");
-                const entry = history[i];
-                if (!confirm(`Delete "${entry.title || "Saved Tournament"}" from Tournament History? This cannot be undone.`)) return;
-                try {
-                  await setDoc(ref, { history: arrayRemove(entry) }, { merge: true });
-                  location.reload();
-                } catch (e) {
-                  console.error(e);
-                  alert("Could not delete the historical tournament: " + (e?.message || e));
-                }
-              };
-              document.body.appendChild(b);
-            };
-
-            const observer = new MutationObserver(() => {
-              document.querySelectorAll(".history-delete").forEach(x => x.style.display = "none");
-              addBottomHistoryDelete();
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-            addBottomHistoryDelete();
-          };
-          setTimeout(install, 0);
-        })();
-        '''
-          if marker in s and '/* tournament safety patch */' not in s:
-              s = s.replace(marker, marker + injection, 1)
-
-          admin.write_text(s)
-
           viewer = Path('index.html')
           v = viewer.read_text()
           old = "let reset=isF(b.fp1)&&win(b.fp1)===b.fp1.b;b.fp2=reset?same(b.fp2,b.fp1.a,b.fp1.b):m();return b}"
@@ -108,10 +24,9 @@ jobs:
               raise SystemExit('bracket map target text not found')
           viewer.write_text(v)
           PY
-
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add admin.html index.html
+          git add index.html
           git rm -f .github/workflows/patch-viewer-maps.yml || true
           git diff --cached --quiet || git commit -m 'chore: apply bracket random map patch'
           git push
