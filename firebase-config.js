@@ -28,55 +28,42 @@ if (typeof window !== 'undefined' && (window.location.pathname === '/' || window
   `;
   document.head.appendChild(style);
 
-  // Show the already-selected bracket maps on the public viewer even before
-  // Pool Play is locked or the bracket object has been created.
+  // Show selected bracket maps directly inside the existing bracket match boxes.
+  // This works before Pool Play is locked and before the bracket object is created.
   import('https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js').then(async ({ initializeApp, getApps }) => {
     const [{ getFirestore, doc, onSnapshot }] = await Promise.all([
       import('https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js')
     ]);
-    const app = getApps().find(a => a.name === 'viewer-map-preview') || initializeApp(firebaseConfig, 'viewer-map-preview');
+    const app = getApps().find(a => a.name === 'viewer-map-overlay') || initializeApp(firebaseConfig, 'viewer-map-overlay');
     const db = getFirestore(app);
     const ref = doc(db, 'tournaments', 'oregano-2v2');
-    const labels = [
-      'Winners Semi-Final 1',
-      'Winners Semi-Final 2',
-      'Winners Final',
-      'Losers Semi-Final',
-      'Losers Final',
-      'First Place Match 1',
-      'First Place Match 2'
-    ];
-    const escapeHtml = value => String(value ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
-    const render = state => {
-      const maps = Array.isArray(state?.pendingBracketMaps) ? state.pendingBracketMaps : [];
-      const bracket = state?.bracket || {};
-      const keys = ['wb1','wb2','wbf','lb1','lb2','fp1','fp2'];
-      const selected = keys.map((key, i) => bracket?.[key]?.map || maps[i] || null);
-      const any = selected.some(Boolean);
-      let panel = document.querySelector('#preBracketMaps');
-      if (!any) {
-        if (panel) panel.style.display = 'none';
-        return;
-      }
-      if (!panel) {
-        panel = document.createElement('section');
-        panel.id = 'preBracketMaps';
-        panel.className = 'panel';
-        const bracketPanel = document.querySelector('#bracket-panel');
-        bracketPanel?.parentNode?.insertBefore(panel, bracketPanel);
-      }
-      panel.style.display = 'block';
-      panel.innerHTML = `<h2>Bracket Maps</h2><div class="small">Maps selected by the admin are shown here even before Pool Play is locked and before the bracket is created.</div><div class="pre-bracket-map-grid">${labels.map((label,i) => `<div class="pre-bracket-map-card"><b>${label}</b><span>${selected[i] ? `Map: ${escapeHtml(selected[i])}` : 'Map not assigned yet'}</span></div>`).join('')}</div>`;
+    const keys = ['wb1','wb2','wbf','lb1','lb2','fp1','fp2'];
+    const positions = [[65,278],[65,523],[65,843],[480,403],[480,843],[885,478],[1235,478]];
+    let latest = {};
+    const drawMaps = () => {
+      const svg = document.querySelector('#bracket');
+      if (!svg) return;
+      svg.querySelector('#viewerBracketMapLabels')?.remove();
+      const bracket = latest?.bracket || {};
+      const pending = Array.isArray(latest?.pendingBracketMaps) ? latest.pendingBracketMaps : [];
+      const maps = keys.map((key, i) => bracket?.[key]?.map || pending[i] || null);
+      if (!maps.some(Boolean)) return;
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('id','viewerBracketMapLabels');
+      g.setAttribute('pointer-events','none');
+      maps.forEach((map,i)=>{
+        if(!map)return;
+        const [x,y]=positions[i];
+        const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x',x-5);rect.setAttribute('y',y-17);rect.setAttribute('width',Math.max(100,String(map).length*8+32));rect.setAttribute('height',24);rect.setAttribute('rx',5);rect.setAttribute('fill','#17232e');rect.setAttribute('stroke','#55d6c2');
+        const text=document.createElementNS('http://www.w3.org/2000/svg','text');
+        text.setAttribute('x',x+8);text.setAttribute('y',y);text.setAttribute('font-family','Arial');text.setAttribute('font-size','13');text.setAttribute('font-weight','800');text.setAttribute('fill','#55d6c2');text.textContent=`MAP: ${String(map)}`;
+        g.appendChild(rect);g.appendChild(text);
+      });
+      svg.appendChild(g);
     };
-    onSnapshot(ref, snapshot => render(snapshot.exists() ? snapshot.data() : {}));
-  }).catch(() => {});
-
-  const mapStyle = document.createElement('style');
-  mapStyle.textContent = `
-    .pre-bracket-map-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px}
-    .pre-bracket-map-card{background:#0d151e;border:1px solid #293a4a;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
-    .pre-bracket-map-card span{color:#55d6c2;font-weight:800}
-    @media(max-width:700px){.pre-bracket-map-grid{grid-template-columns:1fr}}
-  `;
-  document.head.appendChild(mapStyle);
+    onSnapshot(ref,snapshot=>{latest=snapshot.exists()?snapshot.data():{};drawMaps();});
+    new MutationObserver(()=>drawMaps()).observe(document.body,{childList:true,subtree:true});
+    window.addEventListener('resize',drawMaps);
+  }).catch(()=>{});
 }
