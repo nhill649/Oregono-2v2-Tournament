@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Import Historical Tournament</title>
+<style>body{font:16px system-ui;margin:0;background:#090d12;color:#fff}.wrap{max-width:800px;margin:auto;padding:28px}section{background:#111820;border:1px solid #2a3743;border-radius:14px;padding:20px;margin-top:30px}button{padding:12px 18px;border:0;border-radius:8px;background:#55d6c2;font-weight:800;cursor:pointer}.small{color:#9aa8b5}</style>
+</head>
+<body><div class="wrap"><section><h1>Historical Tournament Import</h1><p id="status" class="small">Checking Firebase authentication…</p><button id="import" style="display:none">Import Tournament</button></section></div>
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js';
+import{getAuth,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js';
+import{getFirestore,doc,getDoc,setDoc,arrayUnion}from'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';
+const cfg=(await import('./firebase-config.js')).firebaseConfig,app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app),ref=doc(db,'tournaments','oregano-2v2'),status=document.querySelector('#status'),btn=document.querySelector('#import');
+const tournament={
+ id:'oregono-2v2-tournament-preston-roman',
+ title:'Oregono 2v2 Tournament-Preston & Roman',
+ savedAt:new Date().toISOString(),
+ state:{
+  pool:[
+   {id:'P1',round:1,a:'Nolan & Xavier',b:'Memphis & Sam',scoreA:2,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
+   {id:'P2',round:1,a:'Preston & Roman',b:'Eli & Sanath',scoreA:4,scoreB:0,firstTeam:'Preston & Roman',firstSide:'Attack',map:null},
+   {id:'P3',round:2,a:'Nolan & Xavier',b:'Eli & Sanath',scoreA:4,scoreB:1,firstTeam:'Nolan & Xavier',firstSide:'Attack',map:null},
+   {id:'P4',round:2,a:'Memphis & Sam',b:'Preston & Roman',scoreA:4,scoreB:1,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null}
+  ],
+  poolComplete:true,
+  bracket:{
+   wb1:{a:'Memphis & Sam',b:'Eli & Sanath',scoreA:5,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
+   wb2:{a:'Nolan & Xavier',b:'Preston & Roman',scoreA:2,scoreB:4,firstTeam:'Nolan & Xavier',firstSide:'Attack',map:null},
+   wbf:{a:'Memphis & Sam',b:'Preston & Roman',scoreA:1,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
+   lb1:{a:'Eli & Sanath',b:'Nolan & Xavier',scoreA:2,scoreB:4,firstTeam:'Eli & Sanath',firstSide:'Attack',map:null},
+   lb2:{a:'Memphis & Sam',b:'Nolan & Xavier',scoreA:4,scoreB:1,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
+   fp1:{a:'Preston & Roman',b:'Memphis & Sam',scoreA:2,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
+   fp2:{a:'Preston & Roman',b:'Memphis & Sam',scoreA:4,scoreB:2,firstTeam:'Preston & Roman',firstSide:'Attack',map:null}
+  },
+  seeds:['Preston & Roman','Memphis & Sam','Nolan & Xavier','Eli & Sanath'],
+  bracketHidden:false,podiumHidden:false,previousWinner:'Preston & Roman',
+  teamNames:['Memphis & Sam','Preston & Roman','Eli & Sanath','Nolan & Xavier'],
+  mapPool:['Map 1','Map 2','Map 3'],pendingBracketMaps:[]
+ }
+};
+let user=null;
+onAuthStateChanged(auth,u=>{user=u;if(u){status.textContent='Admin authentication detected. Ready to import.';btn.style.display='inline-block'}else status.textContent='Log in through the Admin page first, then return to this page.'});
+btn.onclick=async()=>{if(!user)return;btn.disabled=true;status.textContent='Importing…';try{const snap=await getDoc(ref),history=Array.isArray(snap.data()?.history)?snap.data().history:[];if(history.some(x=>x?.id===tournament.id)){status.textContent='This tournament is already in Tournament History.';return}await setDoc(ref,{history:arrayUnion(tournament)},{merge:true});status.textContent='Tournament imported successfully. Open Tournament History to view it.'}catch(e){console.error(e);status.textContent='Import failed: '+(e?.message||e);btn.disabled=false}};
+</script></body></html>
