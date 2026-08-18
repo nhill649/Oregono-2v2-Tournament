@@ -6,7 +6,10 @@ This file is the map for making small, safe changes to the tournament website.
 
 - `index.html` — public viewer page. Changes here affect what spectators see.
 - `admin.html` — admin/scoring page. Tournament controls, scoring, map assignment, team names, standings, bracket creation, and History controls live here.
+- `history.html` — saved tournament History viewer.
+- `stream-control.html` / `twitch-status.js` — stream controls and Twitch status.
 - `firebase-config.js` — Firebase configuration. Do not change unless Firebase configuration itself needs to change.
+- `firestore.rules` / `storage.rules` — security rules. Treat changes here as security-sensitive.
 
 ## Safe editing rule
 
@@ -22,6 +25,18 @@ Before changing a file:
 6. Check the resulting file/commit before making another change.
 
 Git history is the rollback point. Never force-push or rewrite history for a normal tournament change.
+
+## Automated safety checks
+
+`node scripts/validate-site.mjs` checks the required site files, detects unresolved merge-conflict markers, checks basic HTML structure, and syntax-checks inline JavaScript modules without executing them.
+
+`.github/workflows/validate.yml` runs these checks on pushes and pull requests.
+
+GitHub Pages deployment is also gated by the same validation in `.github/workflows/pages.yml`. If validation fails, the deployment job does not run.
+
+## Important workflow safety rule
+
+GitHub Actions must not silently rewrite `index.html`, `admin.html`, or `history.html` after a push. Feature changes belong in intentional commits. Automated workflows should validate, test, build, or deploy—not unexpectedly patch application code.
 
 ## Admin sections
 
@@ -75,6 +90,7 @@ For spectator-only changes, prefer changing the display/rendering function rathe
 
 Check all of these:
 
+- Validation passes.
 - Pool matchup randomization still works.
 - Map randomization does not unexpectedly change teams/matchups.
 - Maps are saved to Firebase.
