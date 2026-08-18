@@ -30,3 +30,5 @@ jobs:
           git rm -f .github/workflows/patch-viewer-maps.yml || true
           git diff --cached --quiet || git commit -m 'chore: apply bracket random map patch'
           git push
+
+          # Trigger this workflow intentionally; the workflow removes itself after applying the patch.
