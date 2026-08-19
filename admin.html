@@ -123,13 +123,19 @@
         let index = 0;
 
         // Assign maps to every existing pool match.
+        const poolMapAssignments = [];
         for (const match of state.pool || []) {
-          match.map = maps[index % maps.length];
+          const selectedMap = maps[index % maps.length];
+          match.map = selectedMap;
+          match.mapName = selectedMap;
+          poolMapAssignments.push(selectedMap);
           index++;
         }
+        state.poolMapAssignments = poolMapAssignments;
 
         // Prepare maps for all seven bracket matches.
         state.pendingBracketMaps = BRACKET_MATCH_KEYS.map((_, i) => maps[(index + i) % maps.length]);
+        state.bracketMapAssignments = [...state.pendingBracketMaps];
 
         // If a bracket already exists, update it immediately too.
         if (state.bracket) {
