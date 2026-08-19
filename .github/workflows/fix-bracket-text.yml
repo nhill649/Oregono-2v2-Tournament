@@ -1,5 +1,6 @@
 name: Fix bracket text
 on:
+  workflow_dispatch:
   push:
     branches: [main]
 permissions:
@@ -33,5 +34,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'Move bracket PENDING text 15px right' || exit 0
+          git commit -m 'Move bracket PENDING text 15px right and set text styling' || exit 0
           git push
