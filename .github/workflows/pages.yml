@@ -36,6 +36,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Move bracket PENDING 15px right
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          marker = '</script>'
+          patch = r'''\n<script>\n(() => {\n  const originalDraw = window.draw;\n  if (typeof originalDraw !== 'function') return;\n  window.draw = function(...args) {\n    originalDraw(...args);\n    document.querySelectorAll('#bracket text').forEach((el) => {\n      if (el.textContent.trim() !== 'PENDING' || el.dataset.pendingShifted) return;\n      const x = parseFloat(el.getAttribute('x'));\n      if (Number.isFinite(x)) {\n        el.setAttribute('x', String(x + 15));\n        el.dataset.pendingShifted = '1';\n      }\n    });\n  };\n})();\n</script>\n'''
+          if marker not in s:
+              raise SystemExit('script marker not found')
+          p.write_text(s.replace(marker, patch + marker, 1))
+          PY
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload site
