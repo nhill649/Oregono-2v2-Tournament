@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Move ONLY bracket PENDING/status 15px right and center viewer standings numbers
+      - name: Apply bracket and viewer standings positioning
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -19,28 +19,24 @@ jobs:
           p = Path('index.html')
           s = p.read_text()
 
-          # Keep the bracket map text exactly where it is; move only the PENDING/status text 15px right.
+          # Bracket: move ONLY the PENDING/status text 15px right. Map position is untouched.
           pattern = r"text\(x\+(\d+),y\+h\+22,otStatus\(q\),17,700,'start','#fff'\)"
           m = re.search(pattern, s)
           if m:
               old_x = int(m.group(1))
               new_x = old_x + 15
-              replacement = f"text(x+{new_x},y+h+22,otStatus(q),17,700,'start','#fff')"
-              s = s[:m.start()] + replacement + s[m.end():]
-              print(f'PENDING/status moved from x+{old_x} to x+{new_x}. Map renderer was not changed.')
-          else:
-              print('Bracket status renderer already updated or not found; leaving it unchanged.')
+              s = s[:m.start()] + f"text(x+{new_x},y+h+22,otStatus(q),17,700,'start','#fff')" + s[m.end():]
 
-          # Viewer Pool Standings: center every numeric/value column except Team.
-          css = '#standings td:not(:nth-child(2)){text-align:center}'
-          if css not in s:
-              marker = '</style>'
-              if marker not in s:
-                  raise SystemExit('Could not find closing style tag')
-              s = s.replace(marker, css + marker, 1)
-              print('Centered Seed, Record, Round Diff, Strength of Schedule, Rounds Won, and Rounds Lost values.')
+          # Viewer Pool Standings: force the numeric/value cells themselves to center.
+          old = '<td>${i+1}</td><td>${t.name}</td><td>${t.w}-${t.l}</td><td>${t.rd>0?\'+\':\'\'}${t.rd}</td><td>${t.sosRank}</td><td>${t.rw}</td><td>${t.rl}</td>'
+          new = '<td style="text-align:center">${i+1}</td><td>${t.name}</td><td style="text-align:center">${t.w}-${t.l}</td><td style="text-align:center">${t.rd>0?\'+\':\'\'}${t.rd}</td><td style="text-align:center">${t.sosRank}</td><td style="text-align:center">${t.rw}</td><td style="text-align:center">${t.rl}</td>'
+          if old in s:
+              s = s.replace(old, new, 1)
+              print('Applied inline centering to all viewer Pool Standings values except Team.')
+          elif 'style="text-align:center">${i+1}' in s:
+              print('Viewer Pool Standings inline centering already applied.')
           else:
-              print('Viewer standings centering rule already present.')
+              raise SystemExit('Could not find viewer Pool Standings row renderer')
 
           p.write_text(s)
           PY
@@ -49,5 +45,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'Center viewer pool standings numbers' || exit 0
+          git commit -m 'Center viewer pool standings values' || exit 0
           git push
