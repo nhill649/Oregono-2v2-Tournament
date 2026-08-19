@@ -18,14 +18,14 @@ jobs:
           p = Path('index.html')
           s = p.read_text()
 
-          # Bracket: move ONLY the PENDING/status text 5px left from its current 15px-right position. Map position is untouched.
-          old = "text(x+15,y+h+22,otStatus(q),17,700,'start','#fff')"
-          new = "text(x+10,y+h+22,otStatus(q),17,700,'start','#fff')"
+          # Bracket: move ONLY the PENDING/status text 10px left from its current position. Map position is untouched.
+          old = "text(x+10,y+h+22,otStatus(q),17,700,'start','#fff')"
+          new = "text(x,y+h+22,otStatus(q),17,700,'start','#fff')"
           if old in s:
               s = s.replace(old, new, 1)
-              print('Moved viewer bracket PENDING/status text 5px left.')
+              print('Moved viewer bracket PENDING/status text 10px left.')
           elif new in s:
-              print('Viewer bracket PENDING/status text is already 5px left.')
+              print('Viewer bracket PENDING/status text is already 10px left.')
           else:
               raise SystemExit('Could not find viewer bracket PENDING/status positioning')
 
@@ -47,5 +47,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'Move viewer bracket PENDING text 5px left' || exit 0
+          git commit -m 'Move viewer bracket PENDING text 10px left' || exit 0
           git push
