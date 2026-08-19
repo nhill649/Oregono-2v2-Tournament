@@ -5,7 +5,6 @@ on:
     branches: [main]
 permissions:
   contents: write
-
 jobs:
   fix:
     runs-on: ubuntu-latest
@@ -15,15 +14,16 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text()
-          s=s.replace('PENDING', 'PENDING')
-          # Viewer bracket pending labels use text-anchor="middle"; shift only those labels left by 10px.
-          import re
-          s=re.sub(r'(text\(\s*([0-9]+(?:\.[0-9]+)?)\s*,\s*[^,]+\s*,\s*[\'\"]PENDING[\'\"])', lambda m: m.group(1).replace(m.group(2), str(float(m.group(2))-10).rstrip('0').rstrip('.'), 1), s)
+          p = Path('index.html')
+          s = p.read_text()
+          old = "text(x+158,y+h+22,otStatus(q),17,700,'start','#fff')"
+          new = "text(x+148,y+h+22,otStatus(q),17,700,'start','#fff')"
+          if old not in s:
+              raise SystemExit('Expected viewer bracket status position was not found')
+          s = s.replace(old, new, 1)
           p.write_text(s)
           PY
-      - name: Commit change
+      - name: Commit and push
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
