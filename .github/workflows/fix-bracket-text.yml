@@ -11,19 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply ONLY requested bracket text changes
+      - name: Move ONLY bracket PENDING/status 15px right
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
           p = Path('index.html')
           s = p.read_text()
-          old = "B.push(text(x,y+h+22,bracketMap,17,700,'start','#fff'),text(x+53,y+h+22,otStatus(q),17,700,'start','#fff'))"
-          new = "B.push(text(x,y+h+22,bracketMap,17,700,'start','#fff'),text(x+68,y+h+22,otStatus(q),17,700,'start','#fff'))"
-          if old not in s:
-              raise SystemExit('Could not find exact bracket map/PENDING renderer')
-          p.write_text(s.replace(old, new, 1))
-          print('Map text x unchanged. PENDING/status moved from x+53 to x+68 (+15px).')
+          pattern = r"text\(x\+(\d+),y\+h\+22,otStatus\(q\),17,700,'start','#fff'\)"
+          m = re.search(pattern, s)
+          if not m:
+              raise SystemExit('Could not find the actual bracket status renderer')
+          old_x = int(m.group(1))
+          new_x = old_x + 15
+          replacement = f"text(x+{new_x},y+h+22,otStatus(q),17,700,'start','#fff')"
+          s = s[:m.start()] + replacement + s[m.end():]
+          p.write_text(s)
+          print(f'PENDING/status moved from x+{old_x} to x+{new_x}. Map renderer was not changed.')
           PY
       - name: Commit and push live change
         run: |
