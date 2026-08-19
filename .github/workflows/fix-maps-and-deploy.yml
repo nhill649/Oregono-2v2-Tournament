@@ -1,0 +1,64 @@
+name: Fix live map persistence and deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  fix-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fix map persistence
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('admin.html')
+          s = p.read_text()
+          old = '''        // Randomizing pool matches creates and saves all map assignments immediately.\n        document.querySelector("#draw").onclick = async () => {\n          draw();\n          await save();\n          render();\n        };'''
+          new = '''        // Randomizing pool matches creates and saves all map assignments immediately.\n        // Read the three map fields first so the exact maps currently shown in\n        // Admin are persisted even if the user did not press Save Map Pool.\n        document.querySelector("#draw").onclick = async () => {\n          const maps = [1, 2, 3].map(i => document.querySelector(`#map${i}Input`).value.trim());\n          if (maps.every(Boolean) && new Set(maps).size === 3) {\n            state.mapPool = [...maps];\n          }\n          draw();\n          await save();\n          render();\n        };'''
+          if old not in s:
+              raise SystemExit('draw handler not found')
+          p.write_text(s.replace(old, new, 1))
+
+          p = Path('index.html')
+          s = p.read_text()
+          old = "function getPoolMap(match,index){const pool=Array.isArray(state.pool)?state.pool:[];const assignments=Array.isArray(state.poolMapAssignments)?state.poolMapAssignments:[];const direct=cleanMap(match?.mapName)||cleanMap(match?.assignedMap)||cleanMap(match?.selectedMap)||cleanMap(match?.map)||cleanMap(match?.randomMap)||cleanMap(assignments[index])||cleanMap(pool[index]?.mapName)||cleanMap(pool[index]?.assignedMap)||cleanMap(pool[index]?.selectedMap)||cleanMap(pool[index]?.map);const configured=Array.isArray(state.mapPool)?cleanMap(state.mapPool[index%Math.max(state.mapPool.length,1)]):'';return direct||configured||'Map TBD'}"
+          new = "function getPoolMap(match,index){const pool=Array.isArray(state.pool)?state.pool:[];const assignments=Array.isArray(state.poolMapAssignments)?state.poolMapAssignments:[];const direct=cleanMap(assignments[index])||cleanMap(match?.mapName)||cleanMap(match?.assignedMap)||cleanMap(match?.selectedMap)||cleanMap(match?.map)||cleanMap(match?.randomMap)||cleanMap(pool[index]?.mapName)||cleanMap(pool[index]?.assignedMap)||cleanMap(pool[index]?.selectedMap)||cleanMap(pool[index]?.map);const configured=Array.isArray(state.mapPool)?cleanMap(state.mapPool[index%Math.max(state.mapPool.length,1)]):'';return direct||configured||'Map TBD'}"
+          if old not in s:
+              raise SystemExit('viewer pool map function not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+
+      - name: Commit source fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin.html index.html
+          git diff --cached --quiet || git commit -m "Persist selected maps when randomizing pool play"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
