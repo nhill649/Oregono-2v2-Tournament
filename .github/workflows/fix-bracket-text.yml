@@ -10,24 +10,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Restore real index.html and apply microscopic bracket text changes
+      - name: Apply ONLY the PENDING position change
         run: |
-          git checkout 48996892c658861a8f0f573697b59e026b0f7ada -- index.html
           python3 - <<'PY'
           from pathlib import Path
           import re
           p = Path('index.html')
           s = p.read_text()
-          s2 = re.sub(r"text\(x\+100,y\+h\+22,bracketMap,\d+,700,'start','[^']*'\)", "text(x+100,y+h+22,bracketMap,17,700,'start','#fff')", s, count=1)
-          s2 = re.sub(r"text\(x\+\d+,y\+h\+22,otStatus\(q\),\d+,700,'start','[^']*'\)", "text(x+45,y+h+22,otStatus(q),17,700,'start','#fff')", s2, count=1)
-          if s2 == s:
-              raise SystemExit('Could not find the actual bracket renderer text calls')
+          pattern = r"text\(x\+(\d+),y\+h\+22,otStatus\(q\),"
+          m = re.search(pattern, s)
+          if not m:
+              raise SystemExit('Could not find PENDING renderer')
+          current = int(m.group(1))
+          if current == 65:
+              raise SystemExit('PENDING already at requested position')
+          replacement = f'text(x+{current+20},y+h+22,otStatus(q),'
+          s2 = s[:m.start()] + replacement + s[m.end():]
           p.write_text(s2)
           PY
-      - name: Commit actual index.html change
+      - name: Commit only the PENDING position change
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'Apply bracket pending and map text changes' || exit 0
+          git commit -m 'Move bracket PENDING text 20px right' || exit 0
           git push
