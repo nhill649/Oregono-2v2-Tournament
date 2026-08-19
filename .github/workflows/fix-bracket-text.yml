@@ -10,28 +10,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply ONLY the PENDING position change
+      - name: Apply ONLY requested bracket text changes
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
           p = Path('index.html')
           s = p.read_text()
-          pattern = r"text\(x\+(\d+),y\+h\+22,otStatus\(q\),"
+          pattern = r"text\(x\+(\d+),y\+h\+22,bracketMap,(\d+),700,'start','([^']+)'\),text\(x\+(\d+),y\+h\+22,otStatus\(q\),(\d+),700,'start','([^']+)'\)"
           m = re.search(pattern, s)
           if not m:
-              raise SystemExit('Could not find PENDING renderer')
-          current = int(m.group(1))
-          if current == 65:
-              raise SystemExit('PENDING already at requested position')
-          replacement = f'text(x+{current+20},y+h+22,otStatus(q),'
+              raise SystemExit('Could not find bracket map/PENDING renderer')
+          pending_x = int(m.group(4))
+          new_pending_x = pending_x + 20
+          replacement = f"text(x+{m.group(1)},y+h+22,bracketMap,17,700,'start','#fff'),text(x+{new_pending_x},y+h+22,otStatus(q),17,700,'start','#fff')"
           s2 = s[:m.start()] + replacement + s[m.end():]
           p.write_text(s2)
+          print(f'PENDING x: {pending_x} -> {new_pending_x}; map x unchanged at {m.group(1)}')
           PY
-      - name: Commit only the PENDING position change
+      - name: Commit and push live change
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'Move bracket PENDING text 20px right' || exit 0
+          git commit -m 'Update bracket map and PENDING text' || exit 0
           git push
