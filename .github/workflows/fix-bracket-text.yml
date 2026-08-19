@@ -29,5 +29,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'Restore bracket and update text microscopically' || exit 0
+          git commit -m 'Apply bracket pending and map text changes' || exit 0
           git push
