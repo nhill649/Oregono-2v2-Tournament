@@ -1,0 +1,60 @@
+name: Fix viewer map assignment display
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch map assignment persistence and viewer display
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Admin: persist explicit pool/bracket map assignment fields so the
+          # viewer can read exactly what Randomize Pool Matches selected.
+          p = Path('admin.html')
+          s = p.read_text()
+          old = """        for (const match of state.pool || []) {\n          match.map = maps[index % maps.length];\n          index++;\n        }\n\n        // Prepare maps for all seven bracket matches.\n        state.pendingBracketMaps = BRACKET_MATCH_KEYS.map((_, i) => maps[(index + i) % maps.length]);"""
+          new = """        const poolMapAssignments = [];\n        for (const match of state.pool || []) {\n          const selectedMap = maps[index % maps.length];\n          match.map = selectedMap;\n          match.mapName = selectedMap;\n          poolMapAssignments.push(selectedMap);\n          index++;\n        }\n        state.poolMapAssignments = poolMapAssignments;\n\n        // Prepare maps for all seven bracket matches.\n        state.pendingBracketMaps = BRACKET_MATCH_KEYS.map((_, i) => maps[(index + i) % maps.length]);\n        state.bracketMapAssignments = [...state.pendingBracketMaps];"""
+          if old not in s:
+              raise SystemExit('admin randomizeMaps block not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+
+          # Viewer: read the persisted assignment fields before falling back
+          # to the configured map pool. No visual changes are made.
+          p = Path('index.html')
+          s = p.read_text()
+          old = """function getMatchMap(match,index){const pending=Array.isArray(state.pendingBracketMaps)?state.pendingBracketMaps:[];const poolMatches=Array.isArray(state.pool)?state.pool:[];const poolAssigned=poolMatches.map(g=>cleanMap(g?.map));const poolMap=cleanMap(poolAssigned[index]);const configured=Array.isArray(state.mapPool)?cleanMap(state.mapPool[index%Math.max(state.mapPool.length,1)]):'';return cleanMap(match?.map)||cleanMap(pending[index])||cleanMap(match?.randomMap)||poolMap||configured||'Map TBD'}\nfunction getPoolMap(match,index){const pool=Array.isArray(state.pool)?state.pool:[];const direct=cleanMap(match?.map)||cleanMap(match?.randomMap)||cleanMap(pool[index]?.map);const configured=Array.isArray(state.mapPool)?cleanMap(state.mapPool[index%Math.max(state.mapPool.length,1)]):'';return direct||configured||'Map TBD'}"""
+          new = """function getMatchMap(match,index){const pending=Array.isArray(state.pendingBracketMaps)?state.pendingBracketMaps:[];const bracketAssigned=Array.isArray(state.bracketMapAssignments)?state.bracketMapAssignments:[];const poolAssigned=Array.isArray(state.poolMapAssignments)?state.poolMapAssignments:[];const poolMatches=Array.isArray(state.pool)?state.pool:[];const poolMap=cleanMap(poolAssigned[index])||cleanMap(poolMatches[index]?.mapName)||cleanMap(poolMatches[index]?.assignedMap)||cleanMap(poolMatches[index]?.selectedMap)||cleanMap(poolMatches[index]?.map);const configured=Array.isArray(state.mapPool)?cleanMap(state.mapPool[index%Math.max(state.mapPool.length,1)]):'';return cleanMap(match?.mapName)||cleanMap(match?.assignedMap)||cleanMap(match?.selectedMap)||cleanMap(match?.map)||cleanMap(match?.randomMap)||cleanMap(bracketAssigned[index])||cleanMap(pending[index])||poolMap||configured||'Map TBD'}\nfunction getPoolMap(match,index){const pool=Array.isArray(state.pool)?state.pool:[];const assignments=Array.isArray(state.poolMapAssignments)?state.poolMapAssignments:[];const direct=cleanMap(match?.mapName)||cleanMap(match?.assignedMap)||cleanMap(match?.selectedMap)||cleanMap(match?.map)||cleanMap(match?.randomMap)||cleanMap(assignments[index])||cleanMap(pool[index]?.mapName)||cleanMap(pool[index]?.assignedMap)||cleanMap(pool[index]?.selectedMap)||cleanMap(pool[index]?.map);const configured=Array.isArray(state.mapPool)?cleanMap(state.mapPool[index%Math.max(state.mapPool.length,1)]):'';return direct||configured||'Map TBD'}"""
+          if old not in s:
+              raise SystemExit('viewer map functions not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
+          if git diff --quiet -- index.html admin.html; then
+            echo "No changes needed"
+            rm -f .github/workflows/fix-map-display.yml
+            git add .github/workflows/fix-map-display.yml
+            git commit -m "Remove temporary map fix workflow [skip ci]"
+            git push
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html admin.html
+          git commit -m "Fix selected map display before pool lock"
+          rm -f .github/workflows/fix-map-display.yml
+          git add .github/workflows/fix-map-display.yml
+          git commit -m "Remove temporary map fix workflow [skip ci]"
+          git push
