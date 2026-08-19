@@ -10,24 +10,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply bracket text changes
+      - name: Apply bracket text changes directly to renderer
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path('index.html')
           s = p.read_text()
-          old = "text(x+100,y+h+22,bracketMap,13,700,'start','#91a7c0'),text(x+100,y+h+22,otStatus(q),13,700,'start','#91a7c0')"
-          if old not in s:
-              old = "text(x+100,y+h+22,bracketMap,15,700,'start','#91a7c0'),text(x+25,y+h+22,otStatus(q),15,700,'start','#91a7c0')"
-          new = "text(x+100,y+h+22,bracketMap,17,700,'start','#fff'),text(x+45,y+h+22,otStatus(q),17,700,'start','#fff')"
-          if old not in s:
-              raise SystemExit('target text not found')
-          p.write_text(s.replace(old, new, 1))
+          # Map name: keep its existing x position, make it 17px white.
+          s2 = re.sub(r"text\(x\+100,y\+h\+22,bracketMap,\d+,700,'start','[^']*'\)", "text(x+100,y+h+22,bracketMap,17,700,'start','#fff')", s, count=1)
+          # Pending: 20px to the right of its current x+25 position => x+45.
+          s2 = re.sub(r"text\(x\+\d+,y\+h\+22,otStatus\(q\),\d+,700,'start','[^']*'\)", "text(x+45,y+h+22,otStatus(q),17,700,'start','#fff')", s2, count=1)
+          if s2 == s:
+              raise SystemExit('Could not find the actual bracket renderer text calls')
+          p.write_text(s2)
           PY
       - name: Commit actual index.html change
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'Apply bracket pending and map text changes' || exit 0
+          git commit -m 'Update bracket pending and map text rendering' || exit 0
           git push
