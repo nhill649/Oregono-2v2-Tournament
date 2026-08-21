@@ -205,7 +205,7 @@
       /* ================================================================
          FIRESTORE / HISTORY
          ================================================================ */
-      async function save() { await setDoc(ref, state); }
+      async function save() { await setDoc(ref, state, { merge: true }); }
 
       async function saveHistory() {
         const b = state.bracket || {};
