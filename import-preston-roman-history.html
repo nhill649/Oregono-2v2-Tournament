@@ -13,29 +13,29 @@ import{getFirestore,doc,getDoc,setDoc,arrayUnion}from'https://www.gstatic.com/fi
 const cfg=(await import('./firebase-config.js')).firebaseConfig,app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app),ref=doc(db,'tournaments','oregano-2v2'),status=document.querySelector('#status'),btn=document.querySelector('#import');
 const tournament={
  id:'oregono-2v2-tournament-preston-roman',
- title:'Oregono 2v2 Tournament-Preston & Roman',
+ title:'Oregano 2v2 Tournament — Preston & Roman',
  savedAt:new Date().toISOString(),
  state:{
   pool:[
-   {id:'P1',round:1,a:'Nolan & Xavier',b:'Memphis & Sam',scoreA:2,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
-   {id:'P2',round:1,a:'Preston & Roman',b:'Eli & Sanath',scoreA:4,scoreB:0,firstTeam:'Preston & Roman',firstSide:'Attack',map:null},
-   {id:'P3',round:2,a:'Nolan & Xavier',b:'Eli & Sanath',scoreA:4,scoreB:1,firstTeam:'Nolan & Xavier',firstSide:'Attack',map:null},
-   {id:'P4',round:2,a:'Memphis & Sam',b:'Preston & Roman',scoreA:4,scoreB:1,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null}
+   {id:'P1',round:1,a:'Nolan & Xavier',b:'Memphis & Sam',scoreA:2,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:'Oregon'},
+   {id:'P2',round:1,a:'Preston & Roman',b:'Eli & Sanath',scoreA:4,scoreB:0,firstTeam:'Preston & Roman',firstSide:'Attack',map:'Oregon'},
+   {id:'P3',round:2,a:'Nolan & Xavier',b:'Eli & Sanath',scoreA:4,scoreB:1,firstTeam:'Nolan & Xavier',firstSide:'Attack',map:'Oregon'},
+   {id:'P4',round:2,a:'Memphis & Sam',b:'Preston & Roman',scoreA:4,scoreB:1,firstTeam:'Memphis & Sam',firstSide:'Attack',map:'Oregon'}
   ],
   poolComplete:true,
   bracket:{
-   wb1:{a:'Memphis & Sam',b:'Eli & Sanath',scoreA:5,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
-   wb2:{a:'Nolan & Xavier',b:'Preston & Roman',scoreA:2,scoreB:4,firstTeam:'Nolan & Xavier',firstSide:'Attack',map:null},
-   wbf:{a:'Memphis & Sam',b:'Preston & Roman',scoreA:1,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
-   lb1:{a:'Eli & Sanath',b:'Nolan & Xavier',scoreA:2,scoreB:4,firstTeam:'Eli & Sanath',firstSide:'Attack',map:null},
-   lb2:{a:'Memphis & Sam',b:'Nolan & Xavier',scoreA:4,scoreB:1,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
-   fp1:{a:'Preston & Roman',b:'Memphis & Sam',scoreA:2,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:null},
-   fp2:{a:'Preston & Roman',b:'Memphis & Sam',scoreA:4,scoreB:2,firstTeam:'Preston & Roman',firstSide:'Attack',map:null}
+   wb1:{a:'Memphis & Sam',b:'Eli & Sanath',scoreA:5,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:'Oregon'},
+   wb2:{a:'Nolan & Xavier',b:'Preston & Roman',scoreA:2,scoreB:4,firstTeam:'Nolan & Xavier',firstSide:'Attack',map:'Oregon'},
+   wbf:{a:'Memphis & Sam',b:'Preston & Roman',scoreA:1,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:'Oregon'},
+   lb1:{a:'Eli & Sanath',b:'Nolan & Xavier',scoreA:2,scoreB:4,firstTeam:'Eli & Sanath',firstSide:'Attack',map:'Oregon'},
+   lb2:{a:'Memphis & Sam',b:'Nolan & Xavier',scoreA:4,scoreB:1,firstTeam:'Memphis & Sam',firstSide:'Attack',map:'Oregon'},
+   fp1:{a:'Preston & Roman',b:'Memphis & Sam',scoreA:2,scoreB:4,firstTeam:'Memphis & Sam',firstSide:'Attack',map:'Oregon'},
+   fp2:{a:'Preston & Roman',b:'Memphis & Sam',scoreA:4,scoreB:2,firstTeam:'Preston & Roman',firstSide:'Attack',map:'Oregon'}
   },
-  seeds:['Preston & Roman','Memphis & Sam','Nolan & Xavier','Eli & Sanath'],
+  seeds:['Memphis & Sam','Nolan & Xavier','Preston & Roman','Eli & Sanath'],
   bracketHidden:false,podiumHidden:false,previousWinner:'Preston & Roman',
   teamNames:['Memphis & Sam','Preston & Roman','Eli & Sanath','Nolan & Xavier'],
-  mapPool:['Map 1','Map 2','Map 3'],pendingBracketMaps:[]
+  mapPool:['Oregon'],pendingBracketMaps:[]
  }
 };
 let user=null;
