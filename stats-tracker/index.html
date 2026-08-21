@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>R6 Custom Stats Tracker</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div>
+        <div class="eyebrow">RAINBOW SIX SIEGE • CUSTOM GAME</div>
+        <h1>Custom Stats Tracker</h1>
+        <p>Track PC and Xbox custom matches from one scoreboard.</p>
+      </div>
+      <div class="connection" id="connection">LOCAL MODE</div>
+    </header>
+
+    <section class="panel setup">
+      <h2>Match Setup</h2>
+      <div class="form-grid">
+        <label>Match ID<input id="matchId" placeholder="e.g. pool-1"></label>
+        <label>Map<input id="map" placeholder="Oregon"></label>
+        <label>Platform
+          <select id="platform"><option>PC</option><option>Xbox</option><option>Mixed</option></select>
+        </label>
+        <label>Team A<input id="teamA" placeholder="Team A"></label>
+        <label>Team B<input id="teamB" placeholder="Team B"></label>
+        <label>Target rounds<input id="targetRounds" type="number" min="1" max="20" value="5"></label>
+      </div>
+      <div class="actions">
+        <button id="newMatch">Start / Reset Match</button>
+        <button class="secondary" id="export">Export JSON</button>
+        <label class="file-button secondary">Import JSON<input id="import" type="file" accept="application/json"></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2>Players</h2><button id="addPlayer">Add Player</button></div>
+      <div id="players" class="players"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2>Live Round</h2><span id="roundLabel" class="muted">Round 0</span></div>
+      <div class="round-controls">
+        <button id="roundA">Team A wins round</button>
+        <button id="roundB">Team B wins round</button>
+        <button class="secondary" id="undoRound">Undo last round</button>
+      </div>
+      <div class="event-grid">
+        <div>
+          <h3>Kill</h3>
+          <div class="event-form">
+            <select id="killer"></select>
+            <select id="victim"></select>
+            <label class="check"><input id="hs" type="checkbox"> Headshot</label>
+            <button id="addKill">Record Kill</button>
+          </div>
+        </div>
+        <div>
+          <h3>Objective</h3>
+          <div class="event-form">
+            <select id="objectivePlayer"></select>
+            <button id="plant">Defuser Plant</button>
+            <button id="disable">Defuser Disable</button>
+          </div>
+        </div>
+      </div>
+      <div id="events" class="events"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2>Leaderboard</h2><span class="muted">Match totals</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Player</th><th>Team</th><th>K</th><th>D</th><th>A</th><th>HS</th><th>Plants</th><th>Disables</th><th>K/D</th></tr></thead>
+          <tbody id="leaderboard"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

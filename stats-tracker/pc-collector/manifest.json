@@ -1,0 +1,12 @@
+{
+  "manifest_version": 1,
+  "type": "WebApp",
+  "meta": {
+    "name": "R6 Custom Stats Auto Collector",
+    "version": "0.1.0",
+    "minimum_chrome_version": "120"
+  },
+  "permissions": ["https://*/*", "http://*/*"],
+  "game_events": [10826],
+  "game_targeting": [10826]
+}
