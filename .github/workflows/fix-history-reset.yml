@@ -1,0 +1,39 @@
+name: Fix history persistence during pool reset
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve Tournament History when saving current state
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path("admin.html")
+          s = p.read_text(encoding="utf-8")
+          old = 'async function save() { await setDoc(ref, state); }'
+          new = 'async function save() { await setDoc(ref, state, { merge: true }); }'
+          if old not in s:
+              print("Save function already fixed; no changes needed.")
+          else:
+              p.write_text(s.replace(old, new, 1), encoding="utf-8")
+              print("Updated save() to merge current tournament state without deleting history.")
+      - name: Commit fix
+        shell: bash
+        run: |
+          if git diff --quiet -- admin.html; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin.html
+          git commit -m "Preserve tournament history when resetting pool play"
+          git push
