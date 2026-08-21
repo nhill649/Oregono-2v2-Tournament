@@ -1,0 +1,72 @@
+name: Fix reset history preservation
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch reset handler
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('admin.html')
+          text = path.read_text(encoding='utf-8')
+
+          pattern = r"document\.querySelector\('#resetPool'\)\.onclick=async\(\)=>\{.*?\n    \};"
+          replacement = '''document.querySelector('#resetPool').onclick=async()=>{
+      if(!confirm('Reset and hide Pool Play from the viewer? This clears the current pool matches and standings data.'))return;
+
+      // IMPORTANT: reset only the current tournament fields. Do NOT write the
+      // whole state object back, because that could overwrite tournament history.
+      const preservedHistory = Array.isArray(state.history) ? state.history : undefined;
+      state.pool=[];
+      state.poolComplete=false;
+      state.seeds=null;
+      state.bracket=null;
+      state.bracketHidden=true;
+      state.podiumHidden=true;
+
+      const resetData = {
+        pool: [],
+        poolComplete: false,
+        seeds: null,
+        bracket: null,
+        bracketHidden: true,
+        podiumHidden: true,
+        previousWinner: state.previousWinner || DEFAULT_CHAMPION,
+        teamNames: [...teams],
+        mapPool: [...(state.mapPool || DEFAULT_MAPS)],
+        pendingBracketMaps: []
+      };
+
+      // Explicitly preserve history in memory if it exists, while the Firestore
+      // merge guarantees the existing history field is never deleted.
+      if (preservedHistory) resetData.history = preservedHistory;
+      await setDoc(ref, resetData, { merge: true });
+      render();
+    };'''
+
+          patched, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('Could not locate the Reset / Hide Pool Play handler in admin.html')
+          path.write_text(patched, encoding='utf-8')
+
+      - name: Commit patch and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add admin.html .github/workflows/fix-reset-history.yml
+          git commit -m 'Fix Reset / Hide Pool Play history preservation'
+          git rm .github/workflows/fix-reset-history.yml
+          git commit -m 'Remove one-time reset history fix workflow'
+          git push
