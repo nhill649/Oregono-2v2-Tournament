@@ -3,9 +3,6 @@ name: One-time history reset fix
 on:
   push:
     branches:
-      - fix/history-reset-preservation
-  pull_request:
-    branches:
       - main
 
 permissions:
